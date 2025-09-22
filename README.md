@@ -1,136 +1,120 @@
-# SIGP - Sistema Integrado de Gestión de Préstamos
+# SIGP V2 - Sistema Integral de Gestión de Préstamos
 
-Un dashboard administrativo moderno construido con React, Material-UI y Vite, que incluye un widget de navegación circular personalizado.
+## 📋 Descripción
 
-## 🚀 Características Principales
+SIGP V2 es un sistema integral de gestión de préstamos desarrollado con tecnologías modernas. Permite la administración completa de empresas, sucursales, clientes y procesos de préstamos con una interfaz intuitiva y profesional.
 
-- **Dashboard Administrativo Completo**: Interfaz moderna y responsiva
-- **Widget de Navegación Circular**: Acceso rápido a todas las páginas del sistema
-- **Material-UI**: Componentes de interfaz de usuario modernos
-- **Vite**: Build tool rápido y eficiente
-- **React Router**: Navegación SPA fluida
-- **Internacionalización**: Soporte para múltiples idiomas
-- **Supabase Ready**: Configuración preparada para base de datos
+## 🚀 Tecnologías Utilizadas
 
-## 🎯 Widget de Navegación Circular
+- **Frontend**: React 18 + Vite
+- **UI Framework**: Material-UI (MUI)
+- **Base de Datos**: Supabase (PostgreSQL)
+- **Autenticación**: Supabase Auth
+- **Internacionalización**: i18next
+- **Gestión de Estado**: React Hooks + Context API
 
-El proyecto incluye un widget de navegación circular único que:
-- Muestra el logo "prueba_de_cierculo" sin fondo
-- Proporciona acceso rápido a todas las páginas del menú
-- Se posiciona en la esquina inferior derecha
-- Incluye efectos hover suaves
-- Organiza las páginas en categorías colapsibles
+## ✨ Características Principales
 
-## 🛠️ Tecnologías Utilizadas
+### 🏢 Gestión de Empresas
+- Registro y administración de empresas
+- Información legal completa
+- Configuración de parámetros financieros
 
-- **React 18**: Framework de JavaScript
-- **Material-UI (MUI)**: Biblioteca de componentes
-- **Vite**: Build tool y dev server
-- **React Router**: Enrutamiento
-- **i18next**: Internacionalización
-- **Supabase**: Base de datos (opcional)
+### 🏪 Gestión de Sucursales
+- Creación y administración de sucursales
+- Vinculación con empresas
+- Información de gerentes y contactos
+- Configuración de procesos automáticos
 
-## 📦 Instalación y Configuración
+### 👥 Gestión de Clientes
+- Registro completo de clientes
+- Historial de préstamos
+- Documentación y verificaciones
 
-### Prerrequisitos
-- Node.js 16+ 
-- npm o yarn
+### 💰 Gestión de Préstamos
+- Creación y seguimiento de préstamos
+- Cálculo automático de intereses
+- Gestión de pagos y cuotas
+- Reportes y estadísticas
 
-### Pasos de Instalación
+## 🛠️ Instalación
 
-1. **Clonar el repositorio:**
+1. **Clonar el repositorio**
    ```bash
-   git clone https://github.com/TomasDeev/hello-world-solo-page.git
-   cd hello-world-solo-page
+   git clone https://github.com/[tu-usuario]/SIGP-V2.git
+   cd SIGP-V2
    ```
 
-2. **Instalar dependencias:**
+2. **Instalar dependencias**
    ```bash
    npm install
    ```
 
-3. **Configurar variables de entorno:**
+3. **Configurar variables de entorno**
    ```bash
    cp .env.example .env
    ```
-   Edita el archivo `.env` con tus configuraciones.
+   Edita el archivo `.env` con tus credenciales de Supabase.
 
-4. **Iniciar el servidor de desarrollo:**
+4. **Ejecutar en modo desarrollo**
    ```bash
    npm run dev
    ```
-
-5. **Abrir en el navegador:**
-   ```
-   http://localhost:5173
-   ```
-
-## 🔧 Scripts Disponibles
-
-- `npm run dev` - Inicia el servidor de desarrollo
-- `npm run build` - Construye la aplicación para producción
-- `npm run preview` - Previsualiza la build de producción
-- `npm run lint` - Ejecuta el linter
-
-## 🌐 Integración con Lovable
-
-Este proyecto está optimizado para trabajar con Lovable:
-
-1. **Conecta tu repositorio** con Lovable
-2. **Configura las variables de entorno** en Lovable
-3. **Despliega automáticamente** con cada push
-
-### Variables de Entorno para Lovable
-
-```env
-VITE_APP_TITLE=SIGP Sistema de Préstamos
-VITE_SUPABASE_URL=tu_supabase_url
-VITE_SUPABASE_ANON_KEY=tu_supabase_key
-```
 
 ## 📁 Estructura del Proyecto
 
 ```
 src/
-├── app/
-│   ├── _components/
-│   │   └── widgets/
-│   │       └── CircularNavigationWidget/
-│   ├── _layouts/
-│   ├── _routes/
-│   ├── _shared/
-│   ├── _themes/
-│   └── pages/
-├── @sigp/
-│   ├── components/
-│   ├── shared/
-│   └── utilities/
-└── @assets/
+├── app/                    # Componentes principales de la aplicación
+│   ├── _components/        # Componentes reutilizables
+│   ├── administration/     # Módulos de administración
+│   ├── auth/              # Autenticación
+│   └── shared/            # Componentes compartidos
+├── @jumbo/                # Framework UI personalizado
+├── integrations/          # Integraciones externas
+└── i18n.js               # Configuración de idiomas
 ```
 
-## 🎨 Personalización
+## 🔧 Scripts Disponibles
 
-### Modificar el Logo del Widget Circular
-1. Reemplaza `public/prueba_de_cierculo.png` con tu logo
-2. El logo se ajustará automáticamente al círculo
+- `npm run dev` - Ejecutar en modo desarrollo
+- `npm run build` - Construir para producción
+- `npm run preview` - Vista previa de la build
+- `npm run lint` - Ejecutar linter
 
-### Agregar Nuevas Páginas
-1. Crea el componente en `src/app/pages/`
-2. Agrega la ruta en `src/app/_routes/`
-3. El widget circular detectará automáticamente la nueva página
+## 🗄️ Base de Datos
 
-## 🚀 Despliegue
+El proyecto utiliza Supabase con las siguientes tablas principales:
 
-### Con Lovable (Recomendado)
-1. Conecta este repositorio con Lovable
-2. Configura las variables de entorno
-3. El despliegue será automático
+- **empresas** - Información de empresas
+- **sucursales** - Sucursales por empresa
+- **clientes** - Datos de clientes
+- **prestamos** - Información de préstamos
+- **pagos** - Registro de pagos
 
-### Manual
-```bash
-npm run build
-# Sube la carpeta 'dist' a tu servidor
-```
+## 🌐 Funcionalidades
+
+### Administración
+- Dashboard con estadísticas
+- Gestión de usuarios y permisos
+- Configuración del sistema
+
+### Operaciones
+- Procesamiento de préstamos
+- Gestión de pagos
+- Reportes financieros
+
+### Seguridad
+- Autenticación segura
+- Control de acceso por roles
+- Auditoría de operaciones
+
+## 📱 Responsive Design
+
+La aplicación está completamente optimizada para:
+- 💻 Desktop
+- 📱 Móviles
+- 📟 Tablets
 
 ## 🤝 Contribución
 
@@ -142,14 +126,12 @@ npm run build
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
+Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
 
-## 📞 Soporte
+## 📞 Contacto
 
-Si tienes preguntas o necesitas ayuda:
-- Abre un issue en GitHub
-- Contacta al equipo de desarrollo
+Para soporte o consultas, contacta al equipo de desarrollo.
 
 ---
 
-**Desarrollado con ❤️ **
+**SIGP V2** - Sistema Integral de Gestión de Préstamos
