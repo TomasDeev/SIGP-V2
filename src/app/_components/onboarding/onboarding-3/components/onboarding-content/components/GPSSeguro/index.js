@@ -1,0 +1,1 @@
+export { GPSSeguro } from './GPSSeguro';
