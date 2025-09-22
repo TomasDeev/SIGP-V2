@@ -10,7 +10,7 @@ const SearchGlobal = ({ sx }) => {
 
       <StyledInputBase
         name="search-globally"
-        placeholder="Search anything"
+        placeholder="Buscar Cliente"
         inputProps={{ "aria-label": "search" }}
       />
     </Search>
