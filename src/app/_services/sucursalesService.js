@@ -11,10 +11,10 @@ export class SucursalesService {
   static async getAll() {
     try {
       const { data, error } = await supabase
-        .from('Sucursales')
+        .from('sucursales')
         .select(`
           *,
-          Empresas (
+          empresas (
             IdEmpresa,
             RazonSocial
           )
@@ -35,10 +35,10 @@ export class SucursalesService {
   static async getById(id) {
     try {
       const { data, error } = await supabase
-        .from('Sucursales')
+        .from('sucursales')
         .select(`
           *,
-          Empresas (
+          empresas (
             IdEmpresa,
             RazonSocial
           )
@@ -60,7 +60,7 @@ export class SucursalesService {
   static async create(sucursalData) {
     try {
       const { data, error } = await supabase
-        .from('Sucursales')
+        .from('sucursales')
         .insert([{
           ...sucursalData,
           FechaCreacion: new Date().toISOString()
@@ -82,11 +82,8 @@ export class SucursalesService {
   static async update(id, sucursalData) {
     try {
       const { data, error } = await supabase
-        .from('Sucursales')
-        .update({
-          ...sucursalData,
-          FechaModificacion: new Date().toISOString()
-        })
+        .from('sucursales')
+        .update(sucursalData)
         .eq('IdSucursal', id)
         .select()
         .single();
@@ -105,7 +102,7 @@ export class SucursalesService {
   static async delete(id) {
     try {
       const { error } = await supabase
-        .from('Sucursales')
+        .from('sucursales')
         .delete()
         .eq('IdSucursal', id);
       
@@ -123,10 +120,10 @@ export class SucursalesService {
   static async search(searchTerm) {
     try {
       const { data, error } = await supabase
-        .from('Sucursales')
+        .from('sucursales')
         .select(`
           *,
-          Empresas (
+          empresas (
             IdEmpresa,
             RazonSocial
           )
@@ -148,13 +145,13 @@ export class SucursalesService {
   static async getStats() {
     try {
       const { data, error } = await supabase
-        .from('Sucursales')
-        .select('IdSucursal, Activa');
+        .from('sucursales')
+        .select('IdSucursal, Activo');
       
       if (error) throw error;
       
       const total = data.length;
-      const activas = data.filter(s => s.Activa).length;
+      const activas = data.filter(s => s.Activo).length;
       
       return { 
         success: true, 
@@ -166,6 +163,36 @@ export class SucursalesService {
       };
     } catch (error) {
       console.error('Error obteniendo estadísticas de sucursales:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Verificar si un email ya existe
+   */
+  static async checkEmailExists(email, excludeId = null) {
+    try {
+      let query = supabase
+        .from('sucursales')
+        .select('IdSucursal, Email')
+        .eq('Email', email);
+      
+      // Si estamos editando, excluir el ID actual
+      if (excludeId) {
+        query = query.neq('IdSucursal', excludeId);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      
+      return { 
+        success: true, 
+        exists: data && data.length > 0,
+        data: data || []
+      };
+    } catch (error) {
+      console.error('Error verificando email:', error);
       return { success: false, error: error.message };
     }
   }

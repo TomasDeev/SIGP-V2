@@ -84,6 +84,7 @@ import LoanCalculatorPage from "@app/pages/tools/loan-calculator";
 import CreditApplicationPage from "@app/pages/tools/credit-application";
 import CompaniesPage from "@app/pages/administration/companies";
 import BranchesPage from "@app/pages/administration/branches";
+import UsersPage from "@app/pages/administration/users";
 import UserProfile1 from "@app/pages/user/profile-1";
 import ProfilePage2 from "@app/pages/user/profile-2";
 import ProfilePage3 from "@app/pages/user/profile-3";
@@ -428,6 +429,10 @@ const routes = [
       {
         path: "/administration/branches",
         element: <Page Component={BranchesPage} hoc={withAuth} />,
+      },
+      {
+        path: "/administration/users",
+        element: <Page Component={UsersPage} hoc={withAuth} />,
       },
       /** extra routes */
       {

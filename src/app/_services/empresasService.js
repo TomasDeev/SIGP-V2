@@ -101,14 +101,22 @@ export class EmpresasService {
    */
   static async update(id, empresaData) {
     try {
+      console.log('✏️ EmpresasService.update() - Actualizando empresa ID:', id);
+      console.log('📝 Datos a actualizar:', empresaData);
+      
       const { data, error } = await supabase
         .from('empresas')
-        .delete()
+        .update(empresaData)
         .eq('IdEmpresa', id)
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error en update:', error);
+        throw error;
+      }
+      
+      console.log('✅ Empresa actualizada exitosamente:', data);
       return { success: true, data };
     } catch (error) {
       console.error('Error actualizando empresa:', error);
@@ -121,12 +129,19 @@ export class EmpresasService {
    */
   static async delete(id) {
     try {
+      console.log('🗑️ EmpresasService.delete() - Eliminando empresa ID:', id);
+      
       const { error } = await supabase
-        .from('Empresas')
+        .from('empresas')
         .delete()
         .eq('IdEmpresa', id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error en delete:', error);
+        throw error;
+      }
+      
+      console.log('✅ Empresa eliminada exitosamente');
       return { success: true };
     } catch (error) {
       console.error('Error eliminando empresa:', error);
@@ -139,13 +154,20 @@ export class EmpresasService {
    */
   static async search(searchTerm) {
     try {
+      console.log('🔍 EmpresasService.search() - Buscando:', searchTerm);
+      
       const { data, error } = await supabase
-        .from('Empresas')
+        .from('empresas')
         .select('*')
         .or(`RazonSocial.ilike.%${searchTerm}%,NombreComercial.ilike.%${searchTerm}%,RNC.ilike.%${searchTerm}%`)
         .order('FechaCreacion', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error en search:', error);
+        throw error;
+      }
+      
+      console.log('✅ Búsqueda completada:', data?.length || 0, 'resultados');
       return { success: true, data };
     } catch (error) {
       console.error('Error buscando empresas:', error);
@@ -158,12 +180,18 @@ export class EmpresasService {
    */
   static async getStats() {
     try {
+      console.log('📊 EmpresasService.getStats() - Obteniendo estadísticas');
+      
       const { count, error } = await supabase
-        .from('Empresas')
+        .from('empresas')
         .select('*', { count: 'exact', head: true });
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error en getStats:', error);
+        throw error;
+      }
       
+      console.log('✅ Estadísticas obtenidas - Total:', count);
       return { 
         success: true, 
         data: {

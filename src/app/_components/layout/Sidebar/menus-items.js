@@ -34,6 +34,10 @@ export function getMenus() {
               path: "/administration/branches",
               label: t("sidebar.menuItem.branches"),
             },
+            {
+              path: "/administration/users",
+              label: t("sidebar.menuItem.users"),
+            },
           ],
         },
       ],

@@ -103,7 +103,7 @@ export const useSupabaseData = (entityType) => {
       
       if (result.success) {
         setData(prev => prev.map(item => 
-          item.IdEmpresa === id || item.IdUsuario === id || item.IdPrestamo === id 
+          item.IdEmpresa === id || item.IdUsuario === id || item.IdPrestamo === id || item.IdSucursal === id
             ? result.data 
             : item
         ));
@@ -124,7 +124,7 @@ export const useSupabaseData = (entityType) => {
       
       if (result.success) {
         setData(prev => prev.filter(item => 
-          item.IdEmpresa !== id && item.IdUsuario !== id && item.IdPrestamo !== id
+          item.IdEmpresa !== id && item.IdUsuario !== id && item.IdPrestamo !== id && item.IdSucursal !== id
         ));
         await loadStats(); // Actualizar estadísticas
         return { success: true };
@@ -251,7 +251,31 @@ export const usePrestamos = () => {
  * Hook específico para sucursales
  */
 export const useSucursales = () => {
-  return useSupabaseData('sucursales');
+  const { 
+    data, 
+    loading, 
+    error, 
+    stats, 
+    create, 
+    update, 
+    remove, 
+    search, 
+    getById,
+    loadData
+  } = useSupabaseData('sucursales');
+  
+  return {
+    data,
+    loading,
+    error,
+    stats,
+    create,
+    update,
+    remove,
+    search,
+    getById,
+    loadData
+  };
 };
 
 export default useSupabaseData;

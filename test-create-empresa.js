@@ -41,7 +41,7 @@ async function testCreateEmpresa() {
       
       // Estado y Logo
       Activo: true,
-      UrlLogo: "" // Nombre correcto según migración
+      Logo: "" // Nombre correcto según migración
     };
     
     console.log('📝 Datos a insertar:', empresaData);

@@ -85,7 +85,7 @@ const CompaniesWithSupabase = () => {
     Mora: 0,
     Cuotas: 12,
     GastoCierre: 0,
-    UrlLogo: "",
+    Logo: "",
     Banco: "",
   });
 
@@ -223,7 +223,7 @@ const CompaniesWithSupabase = () => {
       Mora: company.Mora || 0,
       Cuotas: company.Cuotas || 12,
       GastoCierre: company.GastoCierre || 0,
-      UrlLogo: company.UrlLogo || "",
+      Logo: company.Logo || "",
       Banco: company.Banco || "",
     });
     setOpenDialog(true);
@@ -253,7 +253,7 @@ const CompaniesWithSupabase = () => {
       Mora: 0,
       Cuotas: 12,
       GastoCierre: 0,
-      UrlLogo: "",
+      Logo: "",
       Banco: "",
     });
     setSelectedCompany(null);

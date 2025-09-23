@@ -348,7 +348,7 @@ const CompaniesPage = () => {
     
     // Estado y Logo
     status: "Activa",
-    logo: null,
+    logo: '',
   });
 
   const handleOpenDialog = (company = null) => {
@@ -368,7 +368,7 @@ const CompaniesPage = () => {
         president: company.Presidente || "",
         presidentId: company.CedulaPresidente || "",
         lawyer: company.Abogado || "",
-        lawyerMaritalStatus: company.EstadoCivilAbogado || "Soltero",
+        lawyerMaritalStatus: company.EstadoCivilAbogado === 2 ? "Casado" : "Soltero",
         lawyerId: company.CedulaAbogado || "",
         lawyerOfficeAddress: company.DireccionAbogado || "",
         notary: company.Notario || "",
@@ -376,19 +376,19 @@ const CompaniesPage = () => {
         
         // Información Financiera
         bank: company.Banco || "",
-        accountNumber: company.NumeroCuenta || "",
+        accountNumber: company.NoCuenta || "",
         accountingCompanyId: company.EmpresaContabilidadId || "",
         defaultRate: company.Tasa || "0.00",
         defaultLateFee: company.Mora || "0.00",
         defaultInstallments: company.Cuotas || "0",
         defaultClosingCosts: company.GastoCierre || "0.00",
         paymentPenalty: company.Penalidad || "5",
-        maxPaymentOnRemainingCapital: company.MaxAbonoPorcentaje || "50",
-        minPaymentOnRemainingCapital: company.MinAbonoPorcentaje || "50",
+        maxPaymentOnRemainingCapital: company.MaxAbonoSobreCapital || "50",
+        minPaymentOnRemainingCapital: company.MinAbonoSobreCapital || "50",
         
         // Estado y Logo
         status: company.Activo ? "Activa" : "Inactiva",
-        logo: company.Logo || null,
+        logo: company.Logo || '',
       });
     } else {
       setEditingCompany(null);
@@ -425,7 +425,7 @@ const CompaniesPage = () => {
         
         // Estado y Logo
         status: "Activa",
-        logo: null,
+        logo: '',
       });
     }
     setOpenDialog(true);
@@ -520,7 +520,7 @@ const CompaniesPage = () => {
           Presidente: formData.president || '',
           CedulaPresidente: formData.presidentId || '',
           Abogado: formData.lawyer || '',
-          EstadoCivilAbogado: formData.lawyerMaritalStatus || 'Soltero',
+          EstadoCivilAbogado: formData.lawyerMaritalStatus === 'Casado' ? 2 : 1,
           CedulaAbogado: formData.lawyerId || '',
           DireccionAbogado: formData.lawyerOfficeAddress || '',
           Notario: formData.notary || '',
@@ -528,19 +528,19 @@ const CompaniesPage = () => {
           
           // Información Financiera
           Banco: formData.bank || '',
-          NumeroCuenta: formData.accountNumber || '',
+          NoCuenta: formData.accountNumber || '',
           EmpresaContabilidadId: formData.accountingCompanyId || '',
           Tasa: parseFloat(formData.defaultRate || 0),
           Mora: parseFloat(formData.defaultLateFee || 0),
           Cuotas: parseInt(formData.defaultInstallments || 0),
           GastoCierre: parseFloat(formData.defaultClosingCosts || 0),
           Penalidad: parseFloat(formData.paymentPenalty || 5),
-          MaxAbonoPorcentaje: parseFloat(formData.maxPaymentOnRemainingCapital || 50),
-          MinAbonoPorcentaje: parseFloat(formData.minPaymentOnRemainingCapital || 50),
+          MaxAbonoSobreCapital: parseFloat(formData.maxPaymentOnRemainingCapital || 50) / 100,
+          MinAbonoSobreCapital: parseFloat(formData.minPaymentOnRemainingCapital || 50) / 100,
           
           // Estado y Logo
           Activo: formData.status === "Activa",
-          Logo: formData.logo || null
+          Logo: formData.logo || ''
         };
         console.log('✏️ Updating existing company:', editingCompany.id, updateData);
         await updateEmpresa(editingCompany.id, updateData);
@@ -559,7 +559,7 @@ const CompaniesPage = () => {
           Presidente: formData.president || '',
           CedulaPresidente: formData.presidentId || '',
           Abogado: formData.lawyer || '',
-          EstadoCivilAbogado: formData.lawyerMaritalStatus || 'Soltero',
+          EstadoCivilAbogado: formData.lawyerMaritalStatus === 'Casado' ? 2 : 1,
           CedulaAbogado: formData.lawyerId || '',
           DireccionAbogado: formData.lawyerOfficeAddress || '',
           Notario: formData.notary || '',
@@ -567,19 +567,19 @@ const CompaniesPage = () => {
           
           // Información Financiera
           Banco: formData.bank || '',
-          NumeroCuenta: formData.accountNumber || '',
+          NoCuenta: formData.accountNumber || '',
           EmpresaContabilidadId: formData.accountingCompanyId || '',
           Tasa: parseFloat(formData.defaultRate || 0),
         Mora: parseFloat(formData.defaultLateFee || 0),
         Cuotas: parseInt(formData.defaultInstallments || 0),
         GastoCierre: parseFloat(formData.defaultClosingCosts || 0),
         Penalidad: parseFloat(formData.paymentPenalty || 5),
-          MaxAbonoPorcentaje: parseFloat(formData.maxPaymentOnRemainingCapital || 50),
-          MinAbonoPorcentaje: parseFloat(formData.minPaymentOnRemainingCapital || 50),
+          MaxAbonoSobreCapital: parseFloat(formData.maxPaymentOnRemainingCapital || 50) / 100,
+          MinAbonoSobreCapital: parseFloat(formData.minPaymentOnRemainingCapital || 50) / 100,
           
           // Estado y Logo
           Activo: formData.status === "Activa",
-          Logo: formData.logo || null
+          Logo: formData.logo || ''
         };
         console.log('🆕 Creating new company:', newCompanyData);
         const result = await createEmpresa(newCompanyData);
