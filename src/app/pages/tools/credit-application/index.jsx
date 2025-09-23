@@ -55,9 +55,9 @@ import {
 } from "@mui/icons-material";
 import { JumboCard } from "@jumbo/components";
 
-// Generar datos de ejemplo basados en datos reales del sistema
+
 const generateSampleData = () => {
-  // Datos reales del sistema
+  
   const datosReales = [
     {
       id: '108159',
@@ -315,7 +315,7 @@ export default function CreditApplicationPage() {
 
   const handleMenuOption = (option) => {
     console.log(`Opción seleccionada: ${option} para solicitud: ${selectedRow?.id} - Cliente: ${selectedRow?.cliente}`);
-    // Aquí puedes agregar la lógica específica para cada opción
+    
     handleMenuClose();
   };
 
