@@ -7,6 +7,7 @@ import { ContentLayout } from "@app/_layouts";
 import { ASSET_IMAGES } from "@app/_utilities/constants/paths";
 import { useJumboTheme } from "@jumbo/components/JumboTheme/hooks";
 import React from "react";
+import DebugAuth from "../../_components/DebugAuth";
 
 const useChatLayout = () => {
   const { theme } = useJumboTheme();
@@ -67,6 +68,7 @@ const OnboardingComponent = () => {
       sidebar={<Onboarding1Sidebar />}
       {...onboardingLayoutOptions}
     >
+      <DebugAuth />
       <ContentComponent value={activeStep} />
     </ContentLayout>
   );

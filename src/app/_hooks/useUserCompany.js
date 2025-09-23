@@ -23,11 +23,9 @@ export const useUserCompany = () => {
         setLoading(true);
         setError(null);
 
-        // Por ahora, como no tenemos una tabla de relación usuario-empresa,
-        // vamos a obtener la primera empresa activa como empresa por defecto
-        // En el futuro, esto debería basarse en una relación específica usuario-empresa
+        // Como es un usuario admin, buscar cualquier empresa activa
         const { data: empresas, error: empresasError } = await supabase
-          .from('Empresas')
+          .from('empresas')
           .select(`
             "IdEmpresa",
             "NombreComercial",
@@ -107,8 +105,9 @@ export const useUserCompany = () => {
       setLoading(true);
       setError(null);
 
+      // Como es un usuario admin, buscar cualquier empresa activa
       const { data: empresas, error: empresasError } = await supabase
-        .from('Empresas')
+        .from('empresas')
         .select(`
           "IdEmpresa",
           "NombreComercial",

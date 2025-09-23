@@ -11,22 +11,49 @@ export class EmpresasService {
   static async getAll() {
     try {
       console.log('🔍 EmpresasService.getAll() - Iniciando consulta...');
+      console.log('🔗 Supabase URL:', supabase.supabaseUrl);
+      console.log('📋 Consultando tabla: Empresas');
+      
       const { data, error } = await supabase
         .from('empresas')
         .select('*')
-        .order('FechaCreacion', { ascending: false });
+        .order('IdEmpresa', { ascending: false });
       
-      console.log('📊 EmpresasService.getAll() - Resultado:', { data, error });
+      console.log('📊 EmpresasService.getAll() - Resultado completo:', { 
+        data, 
+        error, 
+        dataLength: data?.length,
+        dataType: typeof data,
+        isArray: Array.isArray(data)
+      });
       
       if (error) {
-        console.error('❌ EmpresasService.getAll() - Error:', error);
+        console.error('❌ EmpresasService.getAll() - Error detallado:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         throw error;
+      }
+      
+      if (data && data.length > 0) {
+        console.log('📋 Empresas encontradas:');
+        data.forEach((empresa, index) => {
+          console.log(`  ${index + 1}. ${empresa.RazonSocial || empresa.NombreComercial} (ID: ${empresa.IdEmpresa})`);
+        });
+      } else {
+        console.log('⚠️ No se encontraron empresas en la base de datos');
       }
       
       console.log('✅ EmpresasService.getAll() - Éxito:', data?.length || 0, 'empresas encontradas');
       return { success: true, data: data || [] };
     } catch (error) {
-      console.error('💥 EmpresasService.getAll() - Excepción:', error);
+      console.error('💥 EmpresasService.getAll() - Excepción completa:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       return { success: false, error: error.message };
     }
   }
@@ -57,7 +84,7 @@ export class EmpresasService {
     try {
       const { data, error } = await supabase
         .from('empresas')
-        .insert([empresa])
+        .insert([empresaData])
         .select()
         .single();
       
@@ -75,8 +102,8 @@ export class EmpresasService {
   static async update(id, empresaData) {
     try {
       const { data, error } = await supabase
-        .from('Empresas')
-        .update(empresaData)
+        .from('empresas')
+        .delete()
         .eq('IdEmpresa', id)
         .select()
         .single();

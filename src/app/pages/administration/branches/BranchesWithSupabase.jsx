@@ -119,17 +119,17 @@ const BranchesWithSupabase = () => {
     Abogado: "",
     EstadoCivilAbogado: "Soltero",
     CedulaAbogado: "",
-    DireccionEstudiosAbogado: "",
+    DireccionAbogado: "",
     PrimerTestigo: "",
     SegundoTestigo: "",
     Alguacil: "",
     Banco: "",
     NumeroCuenta: "",
     TipoRecibo: "/Report/Recibo.aspx",
-    TasaPorDefecto: 0,
-    MoraPorDefecto: 0,
-    CuotasPorDefecto: 0,
-    GastosCierrePorDefecto: 0,
+    Tasa: 0,
+    Mora: 0,
+    Cuotas: 0,
+    GastoCierre: 0,
     PagoMinimoVencido: 70,
     PenalidadAbono: 0,
     MaxAbonoCapital: 0,
@@ -252,7 +252,7 @@ const BranchesWithSupabase = () => {
         TipoRecibo: "/Report/Recibo.aspx",
         TasaPorDefecto: 0,
         MoraPorDefecto: 0,
-        CuotasPorDefecto: 0,
+        Cuotas: 0,
         GastosCierrePorDefecto: 0,
         PagoMinimoVencido: 70,
         PenalidadAbono: 0,
@@ -295,7 +295,7 @@ const BranchesWithSupabase = () => {
         TipoRecibo: branch.TipoRecibo || "/Report/Recibo.aspx",
         TasaPorDefecto: branch.TasaPorDefecto || 0,
         MoraPorDefecto: branch.MoraPorDefecto || 0,
-        CuotasPorDefecto: branch.CuotasPorDefecto || 0,
+        Cuotas: branch.Cuotas || 0,
         GastosCierrePorDefecto: branch.GastosCierrePorDefecto || 0,
         PagoMinimoVencido: branch.PagoMinimoVencido || 70,
         PenalidadAbono: branch.PenalidadAbono || 0,
@@ -649,9 +649,9 @@ const BranchesWithSupabase = () => {
                               CedulaAbogado: selectedEmpresa.CedulaAbogado || '',
                               DireccionEstudiosAbogado: selectedEmpresa.DireccionEstudiosAbogado || '',
                               Banco: selectedEmpresa.Banco || '',
-                              NumeroCuenta: selectedEmpresa.NumeroCuenta || '',
-                              TasaPorDefecto: selectedEmpresa.TasaPorDefecto || 0,
-                              MoraPorDefecto: selectedEmpresa.MoraPorDefecto || 0
+                              NoCuenta: selectedEmpresa.NoCuenta || '',
+                              Tasa: selectedEmpresa.Tasa || 0,
+                              Mora: selectedEmpresa.Mora || 0
                             }));
                           }
                         }
@@ -965,8 +965,8 @@ const BranchesWithSupabase = () => {
                           size="small"
                           label="Cuotas por Defecto"
                           type="number"
-                          value={formData.CuotasPorDefecto || 0}
-                          onChange={(e) => handleFormChange("CuotasPorDefecto", parseInt(e.target.value) || 0)}
+                          value={formData.Cuotas || 0}
+                          onChange={(e) => handleFormChange("Cuotas", parseInt(e.target.value) || 0)}
                           disabled={dialogMode === "view"}
                           sx={professionalFieldStyle}
                           inputProps={{ min: 0 }}

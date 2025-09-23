@@ -52,6 +52,7 @@ import {
   Search as SearchIcon,
   ExpandMore as ExpandMoreIcon,
   CloudUpload as CloudUploadIcon,
+  Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import { JumboCard } from "@jumbo/components";
 import { useEmpresas } from "../../../_hooks/useSupabaseData";
@@ -369,7 +370,7 @@ const CompaniesPage = () => {
         lawyer: company.Abogado || "",
         lawyerMaritalStatus: company.EstadoCivilAbogado || "Soltero",
         lawyerId: company.CedulaAbogado || "",
-        lawyerOfficeAddress: company.DireccionEstudiosAbogado || "",
+        lawyerOfficeAddress: company.DireccionAbogado || "",
         notary: company.Notario || "",
         bailiff: company.Alguacil || "",
         
@@ -377,11 +378,11 @@ const CompaniesPage = () => {
         bank: company.Banco || "",
         accountNumber: company.NumeroCuenta || "",
         accountingCompanyId: company.EmpresaContabilidadId || "",
-        defaultRate: company.TasaPorDefecto || "0.00",
-        defaultLateFee: company.MoraPorDefecto || "0.00",
-        defaultInstallments: company.CuotasPorDefecto || "0",
-        defaultClosingCosts: company.GastosCierrePorDefecto || "0.00",
-        paymentPenalty: company.PenalidadPorAbono || "5",
+        defaultRate: company.Tasa || "0.00",
+        defaultLateFee: company.Mora || "0.00",
+        defaultInstallments: company.Cuotas || "0",
+        defaultClosingCosts: company.GastoCierre || "0.00",
+        paymentPenalty: company.Penalidad || "5",
         maxPaymentOnRemainingCapital: company.MaxAbonoPorcentaje || "50",
         minPaymentOnRemainingCapital: company.MinAbonoPorcentaje || "50",
         
@@ -433,6 +434,14 @@ const CompaniesPage = () => {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingCompany(null);
+  };
+
+  const handleFormChange = (field) => (event) => {
+    const value = event.target.value;
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const validateForm = () => {
@@ -513,7 +522,7 @@ const CompaniesPage = () => {
           Abogado: formData.lawyer || '',
           EstadoCivilAbogado: formData.lawyerMaritalStatus || 'Soltero',
           CedulaAbogado: formData.lawyerId || '',
-          DireccionEstudiosAbogado: formData.lawyerOfficeAddress || '',
+          DireccionAbogado: formData.lawyerOfficeAddress || '',
           Notario: formData.notary || '',
           Alguacil: formData.bailiff || '',
           
@@ -521,11 +530,11 @@ const CompaniesPage = () => {
           Banco: formData.bank || '',
           NumeroCuenta: formData.accountNumber || '',
           EmpresaContabilidadId: formData.accountingCompanyId || '',
-          TasaPorDefecto: parseFloat(formData.defaultRate || 0),
-          MoraPorDefecto: parseFloat(formData.defaultLateFee || 0),
-          CuotasPorDefecto: parseInt(formData.defaultInstallments || 0),
-          GastosCierrePorDefecto: parseFloat(formData.defaultClosingCosts || 0),
-          PenalidadPorAbono: parseFloat(formData.paymentPenalty || 5),
+          Tasa: parseFloat(formData.defaultRate || 0),
+          Mora: parseFloat(formData.defaultLateFee || 0),
+          Cuotas: parseInt(formData.defaultInstallments || 0),
+          GastoCierre: parseFloat(formData.defaultClosingCosts || 0),
+          Penalidad: parseFloat(formData.paymentPenalty || 5),
           MaxAbonoPorcentaje: parseFloat(formData.maxPaymentOnRemainingCapital || 50),
           MinAbonoPorcentaje: parseFloat(formData.minPaymentOnRemainingCapital || 50),
           
@@ -552,7 +561,7 @@ const CompaniesPage = () => {
           Abogado: formData.lawyer || '',
           EstadoCivilAbogado: formData.lawyerMaritalStatus || 'Soltero',
           CedulaAbogado: formData.lawyerId || '',
-          DireccionEstudiosAbogado: formData.lawyerOfficeAddress || '',
+          DireccionAbogado: formData.lawyerOfficeAddress || '',
           Notario: formData.notary || '',
           Alguacil: formData.bailiff || '',
           
@@ -560,11 +569,11 @@ const CompaniesPage = () => {
           Banco: formData.bank || '',
           NumeroCuenta: formData.accountNumber || '',
           EmpresaContabilidadId: formData.accountingCompanyId || '',
-          TasaPorDefecto: parseFloat(formData.defaultRate || 0),
-          MoraPorDefecto: parseFloat(formData.defaultLateFee || 0),
-          CuotasPorDefecto: parseInt(formData.defaultInstallments || 0),
-          GastosCierrePorDefecto: parseFloat(formData.defaultClosingCosts || 0),
-          PenalidadPorAbono: parseFloat(formData.paymentPenalty || 5),
+          Tasa: parseFloat(formData.defaultRate || 0),
+        Mora: parseFloat(formData.defaultLateFee || 0),
+        Cuotas: parseInt(formData.defaultInstallments || 0),
+        GastoCierre: parseFloat(formData.defaultClosingCosts || 0),
+        Penalidad: parseFloat(formData.paymentPenalty || 5),
           MaxAbonoPorcentaje: parseFloat(formData.maxPaymentOnRemainingCapital || 50),
           MinAbonoPorcentaje: parseFloat(formData.minPaymentOnRemainingCapital || 50),
           
@@ -752,11 +761,23 @@ const CompaniesPage = () => {
               sx={{ minWidth: 300 }}
             />
             <Button
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={() => {
+                console.log('🔄 Refreshing companies data...');
+                loadData();
+              }}
+              size="small"
+              sx={{ ml: 2 }}
+            >
+              Actualizar
+            </Button>
+            <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => handleOpenDialog()}
               size="small"
-              sx={{ ml: 2 }}
+              sx={{ ml: 1 }}
             >
               Nueva Empresa
             </Button>
@@ -945,154 +966,154 @@ const CompaniesPage = () => {
               <AccordionDetails sx={{ p: 1.5 }}>
                 <Grid container spacing={1.5}>
                   <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Razón Social"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                      sx={{
-                        '& .MuiInputLabel-root': {
-                          fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
-                          fontWeight: 500,
-                          fontSize: '0.875rem'
-                        },
-                        '& .MuiInputBase-input': {
-                          fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
-                          fontSize: '0.875rem'
-                        }
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Nombre Comercial"
-                      value={formData.commercialName}
-                      onChange={(e) => setFormData({ ...formData, commercialName: e.target.value })}
-                      required
-                      sx={{
-                        '& .MuiInputLabel-root': {
-                          fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
-                          fontWeight: 500,
-                          fontSize: '0.875rem'
-                        },
-                        '& .MuiInputBase-input': {
-                          fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
-                          fontSize: '0.875rem'
-                        }
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="RNC"
-                      value={formData.ruc}
-                      onChange={(e) => setFormData({ ...formData, ruc: e.target.value })}
-                      required
-                      sx={{
-                        '& .MuiInputLabel-root': {
-                          fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
-                          fontWeight: 500,
-                          fontSize: '0.875rem'
-                        },
-                        '& .MuiInputBase-input': {
-                          fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
-                          fontSize: '0.875rem'
-                        }
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Teléfono"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      required
-                      sx={{
-                        '& .MuiInputLabel-root': {
-                          fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
-                          fontWeight: 500,
-                          fontSize: '0.875rem'
-                        },
-                        '& .MuiInputBase-input': {
-                          fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
-                          fontSize: '0.875rem'
-                        }
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Dirección"
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      required
-                      sx={{
-                        '& .MuiInputLabel-root': {
-                          fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
-                          fontWeight: 500,
-                          fontSize: '0.875rem'
-                        },
-                        '& .MuiInputBase-input': {
-                          fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
-                          fontSize: '0.875rem'
-                        }
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      sx={{
-                        '& .MuiInputLabel-root': {
-                          fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
-                          fontWeight: 500,
-                          fontSize: '0.875rem'
-                        },
-                        '& .MuiInputBase-input': {
-                          fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
-                          fontSize: '0.875rem'
-                        }
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel sx={{
-                        fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
-                        fontWeight: 500,
-                        fontSize: '0.875rem'
-                      }}>Estado</InputLabel>
-                      <Select
-                        value={formData.status}
-                        sx={{
-                          '& .MuiSelect-select': {
-                            fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
-                            fontSize: '0.875rem'
-                          }
-                        }}
-                        label="Estado"
-                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      >
-                        <MenuItem value="Activa">Activa</MenuItem>
-                        <MenuItem value="Inactiva">Inactiva</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
+                     <TextField
+                       fullWidth
+                       size="small"
+                       label="Razón Social"
+                       value={formData.name}
+                       onChange={handleFormChange('name')}
+                       required
+                       sx={{
+                         '& .MuiInputLabel-root': {
+                           fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
+                           fontWeight: 500,
+                           fontSize: '0.875rem'
+                         },
+                         '& .MuiInputBase-input': {
+                           fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
+                           fontSize: '0.875rem'
+                         }
+                       }}
+                     />
+                   </Grid>
+                   <Grid item xs={12} md={6}>
+                     <TextField
+                       fullWidth
+                       size="small"
+                       label="Nombre Comercial"
+                       value={formData.commercialName}
+                       onChange={handleFormChange('commercialName')}
+                       required
+                       sx={{
+                         '& .MuiInputLabel-root': {
+                           fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
+                           fontWeight: 500,
+                           fontSize: '0.875rem'
+                         },
+                         '& .MuiInputBase-input': {
+                           fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
+                           fontSize: '0.875rem'
+                         }
+                       }}
+                     />
+                   </Grid>
+                   <Grid item xs={12} md={6}>
+                     <TextField
+                       fullWidth
+                       size="small"
+                       label="RNC"
+                       value={formData.ruc}
+                       onChange={handleFormChange('ruc')}
+                       required
+                       sx={{
+                         '& .MuiInputLabel-root': {
+                           fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
+                           fontWeight: 500,
+                           fontSize: '0.875rem'
+                         },
+                         '& .MuiInputBase-input': {
+                           fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
+                           fontSize: '0.875rem'
+                         }
+                       }}
+                     />
+                   </Grid>
+                   <Grid item xs={12} md={6}>
+                     <TextField
+                       fullWidth
+                       size="small"
+                       label="Teléfono"
+                       value={formData.phone}
+                       onChange={handleFormChange('phone')}
+                       required
+                       sx={{
+                         '& .MuiInputLabel-root': {
+                           fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
+                           fontWeight: 500,
+                           fontSize: '0.875rem'
+                         },
+                         '& .MuiInputBase-input': {
+                           fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
+                           fontSize: '0.875rem'
+                         }
+                       }}
+                     />
+                   </Grid>
+                   <Grid item xs={12}>
+                     <TextField
+                       fullWidth
+                       size="small"
+                       label="Dirección"
+                       value={formData.address}
+                       onChange={handleFormChange('address')}
+                       required
+                       sx={{
+                         '& .MuiInputLabel-root': {
+                           fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
+                           fontWeight: 500,
+                           fontSize: '0.875rem'
+                         },
+                         '& .MuiInputBase-input': {
+                           fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
+                           fontSize: '0.875rem'
+                         }
+                       }}
+                     />
+                   </Grid>
+                   <Grid item xs={12} md={6}>
+                     <TextField
+                       fullWidth
+                       size="small"
+                       label="Email"
+                       type="email"
+                       value={formData.email}
+                       onChange={handleFormChange('email')}
+                       sx={{
+                         '& .MuiInputLabel-root': {
+                           fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
+                           fontWeight: 500,
+                           fontSize: '0.875rem'
+                         },
+                         '& .MuiInputBase-input': {
+                           fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
+                           fontSize: '0.875rem'
+                         }
+                       }}
+                     />
+                   </Grid>
+                   <Grid item xs={12} md={6}>
+                     <FormControl fullWidth size="small">
+                       <InputLabel sx={{
+                         fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
+                         fontWeight: 500,
+                         fontSize: '0.875rem'
+                       }}>Estado</InputLabel>
+                       <Select
+                         value={formData.status}
+                         sx={{
+                           '& .MuiSelect-select': {
+                             fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
+                             fontSize: '0.875rem'
+                           }
+                         }}
+                         label="Estado"
+                         onChange={handleFormChange('status')}
+                       >
+                         <MenuItem value="Activa">Activa</MenuItem>
+                         <MenuItem value="Inactiva">Inactiva</MenuItem>
+                       </Select>
+                     </FormControl>
+                   </Grid>
                 </Grid>
               </AccordionDetails>
             </Accordion>
