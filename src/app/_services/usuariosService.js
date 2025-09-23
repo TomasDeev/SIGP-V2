@@ -2,60 +2,43 @@ import { supabase } from '../_config/supabase';
 
 /**
  * Servicio para gestionar las operaciones CRUD de Usuarios
- * Usa auth.users para obtener usuarios de autenticación de Supabase
+ * Usa la tabla public.Usuarios que está sincronizada con auth.users
  */
 export class UsuariosService {
   
   /**
-   * Obtener todos los usuarios de auth.users
+   * Obtener todos los usuarios de public.Usuarios
    */
   static async getAll() {
     try {
-      console.log('🔍 UsuariosService.getAll() - Iniciando consulta de auth.users...');
+      console.log('🔍 UsuariosService.getAll() - Iniciando consulta de public.Usuarios...');
       
-      // Consultar directamente la tabla auth.users
+      // Consultar la tabla public.usuarios
       const { data, error } = await supabase
-        .from('auth.users')
+        .from('usuarios')
         .select(`
-          id,
-          email,
-          created_at,
-          updated_at,
-          last_sign_in_at,
-          email_confirmed_at,
-          banned_until,
-          raw_user_meta_data,
-          raw_app_meta_data
+          IdUsuario,
+          NombreUsuario,
+          Nombres,
+          Apellidos,
+          Email,
+          Activo,
+          FechaCreacion,
+          UserId,
+          RegID
         `)
-        .order('created_at', { ascending: false });
+        .order('FechaCreacion', { ascending: false });
       
-      console.log('📊 Respuesta de Supabase Auth:', { data, error });
+      console.log('📊 Respuesta de Supabase Usuarios:', { data, error });
       console.log('📈 Cantidad de registros:', data?.length || 0);
       
       if (error) {
-        console.error('❌ Error de Supabase Auth:', error);
+        console.error('❌ Error de Supabase Usuarios:', error);
         throw error;
       }
       
-      // Transformar los datos para que coincidan con el formato esperado
-      const transformedUsers = data?.map(user => ({
-        IdUsuario: user.id,
-        NombreUsuario: user.raw_user_meta_data?.username || user.email?.split('@')[0] || 'Sin nombre',
-        Nombres: user.raw_user_meta_data?.full_name || user.raw_user_meta_data?.first_name || 'Sin nombre',
-        Apellidos: user.raw_user_meta_data?.last_name || '',
-        Email: user.email,
-        Activo: !user.banned_until,
-        FechaCreacion: user.created_at,
-        UserId: user.id,
-        // Campos adicionales que pueden ser útiles
-        EmailConfirmed: user.email_confirmed_at ? true : false,
-        LastSignIn: user.last_sign_in_at,
-        // Campos para empresa y sucursal (inicialmente vacíos)
-        IdEmpresa: null,
-        IdSucursal: null
-      })) || [];
-      
-      return { success: true, data: transformedUsers };
+      // Los datos ya vienen en el formato correcto desde la tabla Usuarios
+      return { success: true, data: data || [] };
     } catch (error) {
       console.error('❌ Error obteniendo usuarios:', error);
       return { success: false, error: error.message };
@@ -68,40 +51,24 @@ export class UsuariosService {
   static async getById(id) {
     try {
       const { data, error } = await supabase
-        .from('auth.users')
+        .from('usuarios')
         .select(`
-          id,
-          email,
-          created_at,
-          updated_at,
-          last_sign_in_at,
-          email_confirmed_at,
-          banned_until,
-          raw_user_meta_data,
-          raw_app_meta_data
+          IdUsuario,
+          NombreUsuario,
+          Nombres,
+          Apellidos,
+          Email,
+          Activo,
+          FechaCreacion,
+          UserId,
+          RegID
         `)
-        .eq('id', id)
+        .eq('IdUsuario', id)
         .single();
       
       if (error) throw error;
       
-      // Transformar el dato
-      const transformedUser = {
-        IdUsuario: data.id,
-        NombreUsuario: data.raw_user_meta_data?.username || data.email?.split('@')[0] || 'Sin nombre',
-        Nombres: data.raw_user_meta_data?.full_name || data.raw_user_meta_data?.first_name || 'Sin nombre',
-        Apellidos: data.raw_user_meta_data?.last_name || '',
-        Email: data.email,
-        Activo: !data.banned_until,
-        FechaCreacion: data.created_at,
-        UserId: data.id,
-        EmailConfirmed: data.email_confirmed_at ? true : false,
-        LastSignIn: data.last_sign_in_at,
-        IdEmpresa: null,
-        IdSucursal: null
-      };
-      
-      return { success: true, data: transformedUser };
+      return { success: true, data: data };
     } catch (error) {
       console.error('Error obteniendo usuario:', error);
       return { success: false, error: error.message };
@@ -172,40 +139,24 @@ export class UsuariosService {
   static async search(searchTerm) {
     try {
       const { data, error } = await supabase
-        .from('auth.users')
+        .from('usuarios')
         .select(`
-          id,
-          email,
-          created_at,
-          updated_at,
-          last_sign_in_at,
-          email_confirmed_at,
-          banned_until,
-          raw_user_meta_data,
-          raw_app_meta_data
+          IdUsuario,
+          NombreUsuario,
+          Nombres,
+          Apellidos,
+          Email,
+          Activo,
+          FechaCreacion,
+          UserId,
+          RegID
         `)
-        .or(`email.ilike.%${searchTerm}%,raw_user_meta_data->>full_name.ilike.%${searchTerm}%`)
-        .order('created_at', { ascending: false });
+        .or(`Email.ilike.%${searchTerm}%,Nombres.ilike.%${searchTerm}%,Apellidos.ilike.%${searchTerm}%,NombreUsuario.ilike.%${searchTerm}%`)
+        .order('FechaCreacion', { ascending: false });
       
       if (error) throw error;
       
-      // Transformar los datos
-      const transformedUsers = data?.map(user => ({
-        IdUsuario: user.id,
-        NombreUsuario: user.raw_user_meta_data?.username || user.email?.split('@')[0] || 'Sin nombre',
-        Nombres: user.raw_user_meta_data?.full_name || user.raw_user_meta_data?.first_name || 'Sin nombre',
-        Apellidos: user.raw_user_meta_data?.last_name || '',
-        Email: user.email,
-        Activo: !user.banned_until,
-        FechaCreacion: user.created_at,
-        UserId: user.id,
-        EmailConfirmed: user.email_confirmed_at ? true : false,
-        LastSignIn: user.last_sign_in_at,
-        IdEmpresa: null,
-        IdSucursal: null
-      })) || [];
-      
-      return { success: true, data: transformedUsers };
+      return { success: true, data: data || [] };
     } catch (error) {
       console.error('Error buscando usuarios:', error);
       return { success: false, error: error.message };
@@ -252,35 +203,25 @@ export class UsuariosService {
   static async getStats() {
     try {
       const { count, error } = await supabase
-        .from('auth.users')
+        .from('usuarios')
         .select('*', { count: 'exact', head: true });
       
       if (error) throw error;
       
-      // Obtener usuarios activos (no baneados)
+      // Obtener usuarios activos
       const { count: usuariosActivos, error: errorActivos } = await supabase
-        .from('auth.users')
+        .from('usuarios')
         .select('*', { count: 'exact', head: true })
-        .is('banned_until', null);
+        .eq('Activo', true);
       
       if (errorActivos) throw errorActivos;
-      
-      // Obtener usuarios con email confirmado
-      const { count: emailsConfirmados, error: errorEmails } = await supabase
-        .from('auth.users')
-        .select('*', { count: 'exact', head: true })
-        .not('email_confirmed_at', 'is', null);
-      
-      if (errorEmails) throw errorEmails;
       
       return { 
         success: true, 
         data: {
           total: count,
           activos: usuariosActivos,
-          inactivos: count - usuariosActivos,
-          emailsConfirmados: emailsConfirmados,
-          emailsPendientes: count - emailsConfirmados
+          inactivos: count - usuariosActivos
         }
       };
     } catch (error) {
