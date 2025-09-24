@@ -8,14 +8,13 @@ import { supabase } from '../_config/supabase';
 export class UsuariosService {
   
   /**
-   * Obtener todos los usuarios con estado de confirmación de email
+   * Obtener todos los usuarios
    */
   static async getAll() {
     try {
       console.log('🔍 Ejecutando consulta de usuarios...');
       
-      // Primero obtenemos los usuarios de la tabla usuarios
-      const { data: usuarios, error } = await supabase
+      const { data, error } = await supabase
         .from('usuarios')
         .select(`
           IdUsuario,
@@ -29,38 +28,17 @@ export class UsuariosService {
         `)
         .order('FechaCreacion', { ascending: false });
 
+      console.log('📊 Respuesta completa de Supabase:', { data, error });
+
       if (error) {
         console.error('❌ Error obteniendo usuarios:', error);
         return { success: false, error: error.message };
       }
 
-      // Luego obtenemos el estado de confirmación de auth.users
-      const usuariosConEstado = [];
-      
-      for (const usuario of usuarios || []) {
-        try {
-          // Usar RPC para obtener información de auth.users de forma segura
-          const { data: authInfo } = await supabase.rpc('get_user_auth_info', { 
-            user_uuid: usuario.UserId 
-          });
-          
-          usuariosConEstado.push({
-            ...usuario,
-            emailConfirmado: authInfo?.email_confirmed || false,
-            estadoEmail: authInfo?.email_confirmed ? 'Confirmado' : 'Sin confirmar'
-          });
-        } catch (authError) {
-          // Si no podemos obtener info de auth, asumimos sin confirmar
-          usuariosConEstado.push({
-            ...usuario,
-            emailConfirmado: false,
-            estadoEmail: 'Sin confirmar'
-          });
-        }
-      }
+      console.log('✅ Usuarios encontrados en BD:', data?.length || 0);
+      console.log('📋 Lista de usuarios:', data);
 
-      console.log('✅ Usuarios con estado:', usuariosConEstado.length);
-      return { success: true, data: usuariosConEstado };
+      return { success: true, data: data || [] };
     } catch (error) {
       console.error('Error obteniendo usuarios:', error);
       return { success: false, error: error.message };
