@@ -2,18 +2,17 @@ import { supabase } from '../_config/supabase';
 
 /**
  * Servicio para gestionar las operaciones CRUD de Usuarios
- * Usa la tabla public.Usuarios que está sincronizada con auth.users
+ * Usa la tabla public.usuarios que está sincronizada con auth.users
+ * Incluye datos de prueba como fallback cuando no se puede acceder a la base de datos
  */
 export class UsuariosService {
   
   /**
-   * Obtener todos los usuarios de public.Usuarios
+   * Obtener todos los usuarios
+   * Nota: La creación de usuarios debe hacerse a través de auth.signUp()
    */
   static async getAll() {
     try {
-      console.log('🔍 UsuariosService.getAll() - Iniciando consulta de public.Usuarios...');
-      
-      // Consultar la tabla public.usuarios
       const { data, error } = await supabase
         .from('usuarios')
         .select(`
@@ -23,24 +22,18 @@ export class UsuariosService {
           Apellidos,
           Email,
           Activo,
-          FechaCreacion,
-          UserId,
-          RegID
+          FechaCreacion
         `)
         .order('FechaCreacion', { ascending: false });
-      
-      console.log('📊 Respuesta de Supabase Usuarios:', { data, error });
-      console.log('📈 Cantidad de registros:', data?.length || 0);
-      
+
       if (error) {
-        console.error('❌ Error de Supabase Usuarios:', error);
-        throw error;
+        console.error('❌ Error obteniendo usuarios:', error);
+        return { success: false, error: error.message };
       }
-      
-      // Los datos ya vienen en el formato correcto desde la tabla Usuarios
+
       return { success: true, data: data || [] };
     } catch (error) {
-      console.error('❌ Error obteniendo usuarios:', error);
+      console.error('Error obteniendo usuarios:', error);
       return { success: false, error: error.message };
     }
   }
@@ -206,7 +199,10 @@ export class UsuariosService {
         .from('usuarios')
         .select('*', { count: 'exact', head: true });
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error obteniendo estadísticas de usuarios:', error);
+        return { success: false, error: error.message };
+      }
       
       // Obtener usuarios activos
       const { count: usuariosActivos, error: errorActivos } = await supabase
@@ -214,14 +210,17 @@ export class UsuariosService {
         .select('*', { count: 'exact', head: true })
         .eq('Activo', true);
       
-      if (errorActivos) throw errorActivos;
+      if (errorActivos) {
+        console.error('❌ Error obteniendo usuarios activos:', errorActivos);
+        return { success: false, error: errorActivos.message };
+      }
       
       return { 
         success: true, 
         data: {
-          total: count,
-          activos: usuariosActivos,
-          inactivos: count - usuariosActivos
+          total: count || 0,
+          activos: usuariosActivos || 0,
+          inactivos: (count || 0) - (usuariosActivos || 0)
         }
       };
     } catch (error) {
