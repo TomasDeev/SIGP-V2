@@ -8,13 +8,14 @@ import { supabase } from '../_config/supabase';
 export class UsuariosService {
   
   /**
-   * Obtener todos los usuarios
+   * Obtener todos los usuarios con estado de confirmación de email
    */
   static async getAll() {
     try {
       console.log('🔍 Ejecutando consulta de usuarios...');
       
-      const { data, error } = await supabase
+      // Obtener usuarios con información de confirmación usando RPC
+      const { data: usuarios, error } = await supabase
         .from('usuarios')
         .select(`
           IdUsuario,
@@ -28,17 +29,41 @@ export class UsuariosService {
         `)
         .order('FechaCreacion', { ascending: false });
 
-      console.log('📊 Respuesta completa de Supabase:', { data, error });
-
       if (error) {
         console.error('❌ Error obteniendo usuarios:', error);
         return { success: false, error: error.message };
       }
 
-      console.log('✅ Usuarios encontrados en BD:', data?.length || 0);
-      console.log('📋 Lista de usuarios:', data);
+      // Obtener estado de confirmación para cada usuario
+      const usuariosConEstado = [];
+      
+      for (const usuario of usuarios || []) {
+        try {
+          const { data: authInfo, error: rpcError } = await supabase.rpc('get_user_auth_info', { 
+            user_uuid: usuario.UserId 
+          });
+          
+          console.log(`📧 Estado email para ${usuario.Email}:`, authInfo);
+          
+          const emailConfirmado = authInfo?.email_confirmed === true;
+          
+          usuariosConEstado.push({
+            ...usuario,
+            emailConfirmado,
+            estadoEmail: emailConfirmado ? 'Confirmado' : 'Sin confirmar'
+          });
+        } catch (authError) {
+          console.error('Error obteniendo info auth:', authError);
+          usuariosConEstado.push({
+            ...usuario,
+            emailConfirmado: false,
+            estadoEmail: 'Sin confirmar'
+          });
+        }
+      }
 
-      return { success: true, data: data || [] };
+      console.log('✅ Usuarios con estado procesados:', usuariosConEstado);
+      return { success: true, data: usuariosConEstado };
     } catch (error) {
       console.error('Error obteniendo usuarios:', error);
       return { success: false, error: error.message };
