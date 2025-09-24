@@ -168,6 +168,35 @@ export class SucursalesService {
   }
 
   /**
+   * Obtener sucursales por empresa
+   */
+  static async getByEmpresa(idEmpresa) {
+    try {
+      const { data, error } = await supabase
+        .from('sucursales')
+        .select(`
+          IdSucursal,
+          Nombre,
+          Codigo,
+          Direccion,
+          Telefono,
+          Email,
+          Gerente,
+          Activo
+        `)
+        .eq('IdEmpresa', idEmpresa)
+        .eq('Activo', true)
+        .order('Nombre', { ascending: true });
+      
+      if (error) throw error;
+      return { success: true, data: data || [] };
+    } catch (error) {
+      console.error('Error obteniendo sucursales por empresa:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Verificar si un email ya existe
    */
   static async checkEmailExists(email, excludeId = null) {

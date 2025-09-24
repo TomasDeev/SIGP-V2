@@ -31,6 +31,10 @@ import {
   Alert,
   CircularProgress,
   Snackbar,
+  Checkbox,
+  FormControlLabel,
+  FormGroup,
+  Paper,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -45,12 +49,13 @@ import {
 } from "@mui/icons-material";
 import { JumboCard } from "@jumbo/components";
 import { UsuariosService } from "../../../_services/usuariosService";
-import { EmpresasService } from "../../../_services";
+import { EmpresasService, SucursalesService } from "../../../_services";
 
 const UsersWithSupabase = () => {
   // Estados para datos
   const [users, setUsers] = useState([]);
   const [companies, setCompanies] = useState([]);
+  const [sucursales, setSucursales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState({ total: 0 });
@@ -68,10 +73,37 @@ const UsersWithSupabase = () => {
 
   // Estados para formulario
   const [formData, setFormData] = useState({
-    NombreUsuario: "",
+    // Información Personal
     Nombres: "",
     Apellidos: "",
+    Direccion: "",
+    Telefono: "",
+    
+    // Información de Cuenta
+    IdEmpresa: "",
+    IdSucursal: "",
+    NombreUsuario: "",
     Email: "",
+    Password: "",
+    ConfirmPassword: "",
+    
+    // Control de Acceso
+    DiasRegulares: {
+      lunes: true,
+      martes: true,
+      miercoles: true,
+      jueves: true,
+      viernes: true
+    },
+    Sabado: {
+      activo: false,
+      desde: "08:00"
+    },
+    Domingo: {
+      activo: false,
+      desde: "08:00"
+    },
+    
     Activo: true,
   });
 
@@ -129,7 +161,67 @@ const UsersWithSupabase = () => {
     }
   };
 
+  const loadSucursalesByEmpresa = async (idEmpresa) => {
+    try {
+      if (!idEmpresa) {
+        setSucursales([]);
+        return;
+      }
+      
+      const result = await SucursalesService.getByEmpresa(idEmpresa);
+      if (result.success) {
+        setSucursales(result.data || []);
+      } else {
+        console.error("Error al cargar sucursales:", result.error);
+        setSucursales([]);
+      }
+    } catch (err) {
+      console.error("Error al cargar sucursales:", err);
+      setSucursales([]);
+    }
+  };
+
+  // Validación del formulario
+  const validateForm = () => {
+    const errors = [];
+    
+    // Validar información personal
+    if (!formData.Nombres.trim()) errors.push("El nombre es requerido");
+    if (!formData.Apellidos.trim()) errors.push("Los apellidos son requeridos");
+    if (!formData.Telefono.trim()) errors.push("El teléfono es requerido");
+    
+    // Validar información de cuenta
+    if (!formData.IdEmpresa) errors.push("La empresa es requerida");
+    if (!formData.NombreUsuario.trim()) errors.push("El nombre de usuario es requerido");
+    if (!formData.Email.trim()) errors.push("El email es requerido");
+    
+    // Validar email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (formData.Email && !emailRegex.test(formData.Email)) {
+      errors.push("El formato del email no es válido");
+    }
+    
+    // Validar contraseña solo en modo crear
+    if (dialogMode === "create") {
+      if (!formData.Password) errors.push("La contraseña es requerida");
+      if (formData.Password !== formData.ConfirmPassword) {
+        errors.push("Las contraseñas no coinciden");
+      }
+      if (formData.Password && formData.Password.length < 6) {
+        errors.push("La contraseña debe tener al menos 6 caracteres");
+      }
+    }
+    
+    return errors;
+  };
+
   const handleCreate = async () => {
+    const validationErrors = validateForm();
+    if (validationErrors.length > 0) {
+      showSnackbar(validationErrors.join(", "), "error");
+      return;
+    }
+    
     try {
       const result = await UsuariosService.create(formData);
       if (result.success) {
@@ -147,6 +239,12 @@ const UsersWithSupabase = () => {
   };
 
   const handleUpdate = async () => {
+    const validationErrors = validateForm();
+    if (validationErrors.length > 0) {
+      showSnackbar(validationErrors.join(", "), "error");
+      return;
+    }
+    
     try {
       const result = await UsuariosService.update(selectedUser.IdUsuario, formData);
       if (result.success) {
@@ -206,11 +304,48 @@ const UsersWithSupabase = () => {
   const openEditDialog = (user) => {
     setDialogMode("edit");
     setSelectedUser(user);
+    
+    // Cargar sucursales de la empresa del usuario
+    if (user.IdEmpresa) {
+      loadSucursalesByEmpresa(user.IdEmpresa);
+    }
+    
     setFormData({
-      NombreUsuario: user.NombreUsuario || "",
+      // Información Personal
       Nombres: user.Nombres || "",
       Apellidos: user.Apellidos || "",
+      Direccion: user.Direccion || "",
+      Telefono: user.Telefono || "",
+      
+      // Información de Cuenta
+      IdEmpresa: user.IdEmpresa || "",
+      IdSucursal: user.IdSucursal || "",
+      NombreUsuario: user.NombreUsuario || "",
       Email: user.Email || "",
+      Password: "",
+      ConfirmPassword: "",
+      
+      // Control de Acceso
+      DiasRegulares: {
+        Lunes: user.DiasRegulares?.Lunes || false,
+        Martes: user.DiasRegulares?.Martes || false,
+        Miercoles: user.DiasRegulares?.Miercoles || false,
+        Jueves: user.DiasRegulares?.Jueves || false,
+        Viernes: user.DiasRegulares?.Viernes || false,
+        HoraInicio: user.DiasRegulares?.HoraInicio || "08:00",
+        HoraFin: user.DiasRegulares?.HoraFin || "17:00",
+      },
+      Sabado: {
+        Activo: user.Sabado?.Activo || false,
+        HoraInicio: user.Sabado?.HoraInicio || "08:00",
+        HoraFin: user.Sabado?.HoraFin || "12:00",
+      },
+      Domingo: {
+        Activo: user.Domingo?.Activo || false,
+        HoraInicio: user.Domingo?.HoraInicio || "08:00",
+        HoraFin: user.Domingo?.HoraFin || "12:00",
+      },
+      
       Activo: user.Activo !== undefined ? user.Activo : true,
     });
     setOpenDialog(true);
@@ -219,15 +354,49 @@ const UsersWithSupabase = () => {
   const openViewDialog = (user) => {
     setDialogMode("view");
     setSelectedUser(user);
+    
+    // Cargar sucursales de la empresa del usuario para mostrar el nombre correcto
+    if (user.IdEmpresa) {
+      loadSucursalesByEmpresa(user.IdEmpresa);
+    }
+    
     setOpenDialog(true);
   };
 
   const resetForm = () => {
+    setSucursales([]); // Limpiar sucursales
     setFormData({
-      NombreUsuario: "",
+      // Información Personal
       Nombres: "",
       Apellidos: "",
+      Direccion: "",
+      Telefono: "",
+      
+      // Información de Cuenta
+      IdEmpresa: "",
+      IdSucursal: "",
+      NombreUsuario: "",
       Email: "",
+      Password: "",
+      ConfirmPassword: "",
+      
+      // Control de Acceso
+      DiasRegulares: {
+        lunes: true,
+        martes: true,
+        miercoles: true,
+        jueves: true,
+        viernes: true
+      },
+      Sabado: {
+        activo: false,
+        desde: "08:00"
+      },
+      Domingo: {
+        activo: false,
+        desde: "08:00"
+      },
+      
       Activo: true,
     });
     setSelectedUser(null);
@@ -237,11 +406,33 @@ const UsersWithSupabase = () => {
     setSnackbar({ open: true, message, severity });
   };
 
-  const handleFormChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const handleFormChange = (field, value, subField = null) => {
+    setFormData(prev => {
+      if (subField) {
+        return {
+          ...prev,
+          [field]: {
+            ...prev[field],
+            [subField]: value
+          }
+        };
+      }
+      
+      // Si cambia la empresa, cargar sucursales y resetear sucursal seleccionada
+      if (field === "IdEmpresa") {
+        loadSucursalesByEmpresa(value);
+        return {
+          ...prev,
+          [field]: value,
+          IdSucursal: "" // Resetear sucursal cuando cambie la empresa
+        };
+      }
+      
+      return {
+        ...prev,
+        [field]: value
+      };
+    });
   };
 
   const handleSubmit = () => {
@@ -509,89 +700,277 @@ const UsersWithSupabase = () => {
       </JumboCard>
 
       {/* Dialog para crear/editar/ver usuario */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="lg" fullWidth>
         <DialogTitle>
           {dialogMode === "create" && "Nuevo Usuario"}
           {dialogMode === "edit" && "Editar Usuario"}
           {dialogMode === "view" && "Detalles de Usuario"}
         </DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Nombre de Usuario"
-                value={dialogMode === "view" ? selectedUser?.NombreUsuario || "" : formData.NombreUsuario}
-                onChange={(e) => handleFormChange("NombreUsuario", e.target.value)}
-                disabled={dialogMode === "view"}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Nombres"
-                value={dialogMode === "view" ? selectedUser?.Nombres || "" : formData.Nombres}
-                onChange={(e) => handleFormChange("Nombres", e.target.value)}
-                disabled={dialogMode === "view"}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Apellidos"
-                value={dialogMode === "view" ? selectedUser?.Apellidos || "" : formData.Apellidos}
-                onChange={(e) => handleFormChange("Apellidos", e.target.value)}
-                disabled={dialogMode === "view"}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Email"
-                type="email"
-                value={dialogMode === "view" ? selectedUser?.Email || "" : formData.Email}
-                onChange={(e) => handleFormChange("Email", e.target.value)}
-                disabled={dialogMode === "view"}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth disabled={dialogMode === "view"}>
-                <InputLabel>Estado</InputLabel>
-                <Select
-                  value={dialogMode === "view" ? (selectedUser?.Activo ? "true" : "false") : formData.Activo.toString()}
-                  label="Estado"
-                  onChange={(e) => handleFormChange("Activo", e.target.value === "true")}
-                >
-                  <MenuItem value="true">Activo</MenuItem>
-                  <MenuItem value="false">Inactivo</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            {dialogMode === "view" && selectedUser && (
-              <>
+          <Box sx={{ mt: 2 }}>
+            {/* Información Personal */}
+            <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
+              <Typography variant="h6" gutterBottom color="primary">
+                Información Personal
+              </Typography>
+              <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="ID Usuario"
-                    value={selectedUser.IdUsuario || ""}
-                    disabled
+                    label="Nombres"
+                    value={dialogMode === "view" ? selectedUser?.Nombres || "" : formData.Nombres}
+                    onChange={(e) => handleFormChange("Nombres", e.target.value)}
+                    disabled={dialogMode === "view"}
+                    required
                   />
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Fecha de Creación"
-                    value={selectedUser.FechaCreacion ? new Date(selectedUser.FechaCreacion).toLocaleString() : ""}
-                    disabled
+                    label="Apellidos"
+                    value={dialogMode === "view" ? selectedUser?.Apellidos || "" : formData.Apellidos}
+                    onChange={(e) => handleFormChange("Apellidos", e.target.value)}
+                    disabled={dialogMode === "view"}
+                    required
                   />
                 </Grid>
-              </>
-            )}
-          </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Dirección"
+                    value={dialogMode === "view" ? selectedUser?.Direccion || "" : formData.Direccion}
+                    onChange={(e) => handleFormChange("Direccion", e.target.value)}
+                    disabled={dialogMode === "view"}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Teléfono"
+                    value={dialogMode === "view" ? selectedUser?.Telefono || "" : formData.Telefono}
+                    onChange={(e) => handleFormChange("Telefono", e.target.value)}
+                    disabled={dialogMode === "view"}
+                  />
+                </Grid>
+              </Grid>
+            </Paper>
+
+            {/* Información de su cuenta */}
+            <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
+              <Typography variant="h6" gutterBottom color="primary">
+                Información de su cuenta
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth disabled={dialogMode === "view"}>
+                    <InputLabel>Empresa</InputLabel>
+                    <Select
+                      value={dialogMode === "view" ? selectedUser?.IdEmpresa || "" : formData.IdEmpresa}
+                      label="Empresa"
+                      onChange={(e) => handleFormChange("IdEmpresa", e.target.value)}
+                    >
+                      {companies.map((company) => (
+                        <MenuItem key={company.IdEmpresa} value={company.IdEmpresa}>
+                          {company.NombreComercial}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth disabled={dialogMode === "view"}>
+                    <InputLabel>Sucursal</InputLabel>
+                    <Select
+                      value={dialogMode === "view" ? selectedUser?.IdSucursal || "" : formData.IdSucursal}
+                      label="Sucursal"
+                      onChange={(e) => handleFormChange("IdSucursal", e.target.value)}
+                    >
+                      {sucursales.map((sucursal) => (
+                        <MenuItem key={sucursal.IdSucursal} value={sucursal.IdSucursal}>
+                          {sucursal.Nombre}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Nombre de Usuario"
+                    value={dialogMode === "view" ? selectedUser?.NombreUsuario || "" : formData.NombreUsuario}
+                    onChange={(e) => handleFormChange("NombreUsuario", e.target.value)}
+                    disabled={dialogMode === "view"}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    type="email"
+                    value={dialogMode === "view" ? selectedUser?.Email || "" : formData.Email}
+                    onChange={(e) => handleFormChange("Email", e.target.value)}
+                    disabled={dialogMode === "view"}
+                    required
+                  />
+                </Grid>
+                {dialogMode === "create" && (
+                  <>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Contraseña"
+                        type="password"
+                        value={formData.Password}
+                        onChange={(e) => handleFormChange("Password", e.target.value)}
+                        required
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Confirmar Contraseña"
+                        type="password"
+                        value={formData.ConfirmPassword}
+                        onChange={(e) => handleFormChange("ConfirmPassword", e.target.value)}
+                        required
+                        error={formData.Password !== formData.ConfirmPassword && formData.ConfirmPassword !== ""}
+                        helperText={
+                          formData.Password !== formData.ConfirmPassword && formData.ConfirmPassword !== ""
+                            ? "Las contraseñas no coinciden"
+                            : ""
+                        }
+                      />
+                    </Grid>
+                  </>
+                )}
+              </Grid>
+            </Paper>
+
+            {/* Control de acceso */}
+            <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
+              <Typography variant="h6" gutterBottom color="primary">
+                Control de acceso
+              </Typography>
+              
+              {/* Días regulares */}
+              <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
+                Días regulares
+              </Typography>
+              <FormGroup row>
+                {Object.entries(formData.DiasRegulares).map(([dia, activo]) => (
+                  <FormControlLabel
+                    key={dia}
+                    control={
+                      <Checkbox
+                        checked={dialogMode === "view" ? selectedUser?.DiasRegulares?.[dia] || false : activo}
+                        onChange={(e) => handleFormChange("DiasRegulares", e.target.checked, dia)}
+                        disabled={dialogMode === "view"}
+                      />
+                    }
+                    label={dia.charAt(0).toUpperCase() + dia.slice(1)}
+                  />
+                ))}
+              </FormGroup>
+
+              {/* Días válidos para Sábado */}
+              <Typography variant="subtitle1" gutterBottom sx={{ mt: 3 }}>
+                Días válidos para Sábado
+              </Typography>
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12} md={6}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={dialogMode === "view" ? selectedUser?.Sabado?.activo || false : formData.Sabado.activo}
+                        onChange={(e) => handleFormChange("Sabado", e.target.checked, "activo")}
+                        disabled={dialogMode === "view"}
+                      />
+                    }
+                    label="Habilitar Sábado"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Desde"
+                    type="time"
+                    value={dialogMode === "view" ? selectedUser?.Sabado?.desde || "08:00" : formData.Sabado.desde}
+                    onChange={(e) => handleFormChange("Sabado", e.target.value, "desde")}
+                    disabled={dialogMode === "view" || !formData.Sabado.activo}
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+              </Grid>
+
+              {/* Días válidos para Domingo */}
+              <Typography variant="subtitle1" gutterBottom sx={{ mt: 3 }}>
+                Días válidos para Domingo
+              </Typography>
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12} md={6}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={dialogMode === "view" ? selectedUser?.Domingo?.activo || false : formData.Domingo.activo}
+                        onChange={(e) => handleFormChange("Domingo", e.target.checked, "activo")}
+                        disabled={dialogMode === "view"}
+                      />
+                    }
+                    label="Habilitar Domingo"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Desde"
+                    type="time"
+                    value={dialogMode === "view" ? selectedUser?.Domingo?.desde || "08:00" : formData.Domingo.desde}
+                    onChange={(e) => handleFormChange("Domingo", e.target.value, "desde")}
+                    disabled={dialogMode === "view" || !formData.Domingo.activo}
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+              </Grid>
+
+              {/* Estado del usuario */}
+              <Grid container spacing={2} sx={{ mt: 2 }}>
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth disabled={dialogMode === "view"}>
+                    <InputLabel>Estado</InputLabel>
+                    <Select
+                      value={dialogMode === "view" ? (selectedUser?.Activo ? "true" : "false") : formData.Activo.toString()}
+                      label="Estado"
+                      onChange={(e) => handleFormChange("Activo", e.target.value === "true")}
+                    >
+                      <MenuItem value="true">Activo</MenuItem>
+                      <MenuItem value="false">Inactivo</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                {dialogMode === "view" && selectedUser && (
+                  <>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="ID Usuario"
+                        value={selectedUser.IdUsuario || ""}
+                        disabled
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Fecha de Creación"
+                        value={selectedUser.FechaCreacion ? new Date(selectedUser.FechaCreacion).toLocaleString() : ""}
+                        disabled
+                      />
+                    </Grid>
+                  </>
+                )}
+              </Grid>
+            </Paper>
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>
