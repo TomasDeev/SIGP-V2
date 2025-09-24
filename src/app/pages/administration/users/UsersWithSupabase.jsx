@@ -85,6 +85,7 @@ const UsersWithSupabase = () => {
     NombreUsuario: "",
     Email: "",
     password: "",
+    confirmPassword: "",
     Activo: true,
   });
 
@@ -184,11 +185,11 @@ const UsersWithSupabase = () => {
     
     // Validar contraseña solo en modo crear
     if (dialogMode === "create") {
-      if (!formData.Password) errors.push("La contraseña es requerida");
-      if (formData.Password !== formData.ConfirmPassword) {
+      if (!formData.password) errors.push("La contraseña es requerida");
+      if (formData.password !== formData.confirmPassword) {
         errors.push("Las contraseñas no coinciden");
       }
-      if (formData.Password && formData.Password.length < 6) {
+      if (formData.password && formData.password.length < 6) {
         errors.push("La contraseña debe tener al menos 6 caracteres");
       }
     }
@@ -359,6 +360,7 @@ const UsersWithSupabase = () => {
       NombreUsuario: "",
       Email: "",
       password: "",
+      confirmPassword: "",
       Activo: true,
     });
     setSelectedUser(null);
@@ -417,7 +419,10 @@ const UsersWithSupabase = () => {
       (statusFilter === "active" && user.Activo) ||
       (statusFilter === "inactive" && !user.Activo);
     
-    return matchesSearch && matchesStatus;
+    const matchesCompany = !companyFilter || 
+      user.IdEmpresa === parseInt(companyFilter);
+    
+    return matchesSearch && matchesStatus && matchesCompany;
   });
 
   // Paginación
@@ -518,6 +523,21 @@ const UsersWithSupabase = () => {
                   ),
                 }}
               />
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel>Empresa</InputLabel>
+                <Select
+                  value={companyFilter}
+                  label="Empresa"
+                  onChange={(e) => setCompanyFilter(e.target.value)}
+                >
+                  <MenuItem value="">Todas las empresas</MenuItem>
+                  {companies.map((company) => (
+                    <MenuItem key={company.IdEmpresa} value={company.IdEmpresa}>
+                      {company.NombreComercial}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
               <FormControl size="small" sx={{ minWidth: 120 }}>
                 <InputLabel>Estado</InputLabel>
                 <Select
@@ -565,6 +585,7 @@ const UsersWithSupabase = () => {
                 <TableCell>Nombres</TableCell>
                 <TableCell>Apellidos</TableCell>
                 <TableCell>Email</TableCell>
+                <TableCell>Empresa</TableCell>
                 <TableCell>Estado Email</TableCell>
                 <TableCell>Estado</TableCell>
                 <TableCell>Fecha Creación</TableCell>
@@ -574,13 +595,13 @@ const UsersWithSupabase = () => {
             <TableBody>
               {loading ? (
                  <TableRow>
-                   <TableCell colSpan={8} align="center">
+                   <TableCell colSpan={9} align="center">
                      <CircularProgress size={24} />
                    </TableCell>
                  </TableRow>
               ) : paginatedUsers.length === 0 ? (
                  <TableRow>
-                   <TableCell colSpan={8} align="center">
+                   <TableCell colSpan={9} align="center">
                      <Typography variant="body2" color="text.secondary">
                        No se encontraron usuarios
                      </Typography>
@@ -602,6 +623,7 @@ const UsersWithSupabase = () => {
                      <TableCell>{user.Nombres}</TableCell>
                      <TableCell>{user.Apellidos}</TableCell>
                      <TableCell>{user.Email}</TableCell>
+                     <TableCell>{user.NombreComercial || user.RazonSocial || "-"}</TableCell>
                      <TableCell>
                        <Chip
                          label={user.estadoEmail || 'Sin confirmar'}
@@ -713,17 +735,6 @@ const UsersWithSupabase = () => {
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Email"
-                    type="email"
-                    value={dialogMode === "view" ? selectedUser?.Email || "" : formData.Email}
-                    onChange={(e) => handleFormChange("Email", e.target.value)}
-                    disabled={dialogMode === "view"}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
                     label="Dirección"
                     value={dialogMode === "view" ? selectedUser?.Direccion || "" : formData.Direccion}
                     onChange={(e) => handleFormChange("Direccion", e.target.value)}
@@ -739,6 +750,18 @@ const UsersWithSupabase = () => {
                     disabled={dialogMode === "view"}
                   />
                 </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    type="email"
+                    value={dialogMode === "view" ? selectedUser?.Email || "" : formData.Email}
+                    onChange={(e) => handleFormChange("Email", e.target.value)}
+                    disabled={dialogMode === "view"}
+                    required
+                  />
+                </Grid>
+
                 <Grid item xs={12} md={6}>
                   <FormControl fullWidth disabled={dialogMode === "view"}>
                     <InputLabel>Empresa</InputLabel>
@@ -772,17 +795,31 @@ const UsersWithSupabase = () => {
                   </FormControl>
                 </Grid>
                 {dialogMode === "create" && (
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Contraseña"
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => handleFormChange("password", e.target.value)}
-                      required
-                      helperText="Mínimo 6 caracteres"
-                    />
-                  </Grid>
+                  <>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Contraseña"
+                        type="password"
+                        value={formData.password}
+                        onChange={(e) => handleFormChange("password", e.target.value)}
+                        required
+                        helperText="Mínimo 6 caracteres"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Confirmar Contraseña"
+                        type="password"
+                        value={formData.confirmPassword}
+                        onChange={(e) => handleFormChange("confirmPassword", e.target.value)}
+                        required
+                        helperText="Debe coincidir con la contraseña"
+                        error={formData.confirmPassword && formData.password !== formData.confirmPassword}
+                      />
+                    </Grid>
+                  </>
                 )}
                 <Grid item xs={12} md={6}>
                   <FormControl fullWidth disabled={dialogMode === "view"}>

@@ -14,7 +14,7 @@ export class UsuariosService {
     try {
       console.log('🔍 Ejecutando consulta de usuarios...');
       
-      // Obtener usuarios con información de confirmación usando RPC
+      // Obtener usuarios básicos primero
       const { data: usuarios, error } = await supabase
         .from('usuarios')
         .select(`
@@ -25,7 +25,11 @@ export class UsuariosService {
           Email,
           Activo,
           FechaCreacion,
-          UserId
+          UserId,
+          IdEmpresa,
+          Direccion,
+          Telefono,
+          IdSucursal
         `)
         .order('FechaCreacion', { ascending: false });
 
@@ -34,10 +38,40 @@ export class UsuariosService {
         return { success: false, error: error.message };
       }
 
+      // Obtener empresas para enriquecer los datos
+      const { data: empresas, error: empresasError } = await supabase
+        .from('empresas')
+        .select('IdEmpresa, NombreComercial, RazonSocial');
+
+      if (empresasError) {
+        console.warn('⚠️ Error obteniendo empresas:', empresasError.message);
+      }
+
+      // Obtener sucursales para enriquecer los datos
+      const { data: sucursales, error: sucursalesError } = await supabase
+        .from('sucursales')
+        .select('IdSucursal, Nombre, Codigo');
+
+      if (sucursalesError) {
+        console.warn('⚠️ Error obteniendo sucursales:', sucursalesError.message);
+      }
+
+      // Enriquecer usuarios con datos de empresas y sucursales
+      const usuariosEnriquecidos = usuarios.map(usuario => {
+        const empresa = empresas?.find(emp => emp.IdEmpresa === usuario.IdEmpresa);
+        const sucursal = sucursales?.find(suc => suc.IdSucursal === usuario.IdSucursal);
+        
+        return {
+          ...usuario,
+          empresas: empresa ? [empresa] : [],
+          sucursales: sucursal ? [sucursal] : []
+        };
+      });
+
       // Obtener estado de confirmación para cada usuario
       const usuariosConEstado = [];
       
-      for (const usuario of usuarios || []) {
+      for (const usuario of usuariosEnriquecidos || []) {
         try {
           const { data: authInfo, error: rpcError } = await supabase.rpc('get_user_auth_info', { 
             user_uuid: usuario.UserId 
@@ -75,7 +109,8 @@ export class UsuariosService {
    */
   static async getById(id) {
     try {
-      const { data, error } = await supabase
+      // Obtener usuario básico
+      const { data: usuario, error } = await supabase
         .from('usuarios')
         .select(`
           IdUsuario,
@@ -86,14 +121,53 @@ export class UsuariosService {
           Activo,
           FechaCreacion,
           UserId,
+          IdEmpresa,
+          Direccion,
+          Telefono,
+          IdSucursal,
           RegID
         `)
         .eq('IdUsuario', id)
         .single();
       
       if (error) throw error;
+
+      // Obtener empresa si existe
+      let empresa = null;
+      if (usuario.IdEmpresa) {
+        const { data: empresaData, error: empresaError } = await supabase
+          .from('empresas')
+          .select('IdEmpresa, NombreComercial, RazonSocial')
+          .eq('IdEmpresa', usuario.IdEmpresa)
+          .single();
+        
+        if (!empresaError) {
+          empresa = empresaData;
+        }
+      }
+
+      // Obtener sucursal si existe
+      let sucursal = null;
+      if (usuario.IdSucursal) {
+        const { data: sucursalData, error: sucursalError } = await supabase
+          .from('sucursales')
+          .select('IdSucursal, Nombre, Codigo')
+          .eq('IdSucursal', usuario.IdSucursal)
+          .single();
+        
+        if (!sucursalError) {
+          sucursal = sucursalData;
+        }
+      }
+
+      // Enriquecer usuario con datos relacionados
+      const usuarioEnriquecido = {
+        ...usuario,
+        empresas: empresa ? [empresa] : [],
+        sucursales: sucursal ? [sucursal] : []
+      };
       
-      return { success: true, data: data };
+      return { success: true, data: usuarioEnriquecido };
     } catch (error) {
       console.error('Error obteniendo usuario:', error);
       return { success: false, error: error.message };
@@ -183,7 +257,7 @@ export class UsuariosService {
    */
   static async update(id, usuarioData) {
     try {
-      const { Nombres, Apellidos, NombreUsuario, Activo } = usuarioData;
+      const { Nombres, Apellidos, NombreUsuario, Activo, IdEmpresa, Direccion, Telefono, IdSucursal } = usuarioData;
 
       // Solo actualizamos los campos permitidos en la tabla usuarios
       const updates = {};
@@ -191,6 +265,10 @@ export class UsuariosService {
       if (Apellidos !== undefined) updates.Apellidos = Apellidos;
       if (NombreUsuario !== undefined) updates.NombreUsuario = NombreUsuario;
       if (Activo !== undefined) updates.Activo = Activo;
+      if (IdEmpresa !== undefined) updates.IdEmpresa = IdEmpresa;
+      if (Direccion !== undefined) updates.Direccion = Direccion;
+      if (Telefono !== undefined) updates.Telefono = Telefono;
+      if (IdSucursal !== undefined) updates.IdSucursal = IdSucursal;
 
       const { data, error } = await supabase
         .from('usuarios')
