@@ -25,6 +25,12 @@ const OnboardingProvider = ({ children, initSteps, initSidebarSteps }) => {
     setActiveIndex(activeIndex - 1);
   }, [activeIndex]);
 
+  const goToStep = React.useCallback((stepIndex) => {
+    if (stepIndex >= 0 && stepIndex < steps.length) {
+      setActiveIndex(stepIndex);
+    }
+  }, [steps.length]);
+
   const stepperContextValue = React.useMemo(
     () => ({
       steps,
@@ -34,6 +40,7 @@ const OnboardingProvider = ({ children, initSteps, initSidebarSteps }) => {
       activeIndex,
       nextStep,
       prevStep,
+      goToStep,
     }),
     [
       steps,
@@ -43,6 +50,7 @@ const OnboardingProvider = ({ children, initSteps, initSidebarSteps }) => {
       activeIndex,
       nextStep,
       prevStep,
+      goToStep,
     ]
   );
 

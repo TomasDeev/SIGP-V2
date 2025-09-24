@@ -1,0 +1,1 @@
+export { OnboardingStepper2 } from './OnboardingStepper2';
