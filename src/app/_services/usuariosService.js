@@ -8,12 +8,14 @@ import { supabase } from '../_config/supabase';
 export class UsuariosService {
   
   /**
-   * Obtener todos los usuarios
-   * Nota: La creación de usuarios debe hacerse a través de auth.signUp()
+   * Obtener todos los usuarios con estado de confirmación de email
    */
   static async getAll() {
     try {
-      const { data, error } = await supabase
+      console.log('🔍 Ejecutando consulta de usuarios...');
+      
+      // Obtener usuarios con información de confirmación usando RPC
+      const { data: usuarios, error } = await supabase
         .from('usuarios')
         .select(`
           IdUsuario,
@@ -22,7 +24,8 @@ export class UsuariosService {
           Apellidos,
           Email,
           Activo,
-          FechaCreacion
+          FechaCreacion,
+          UserId
         `)
         .order('FechaCreacion', { ascending: false });
 
@@ -31,7 +34,36 @@ export class UsuariosService {
         return { success: false, error: error.message };
       }
 
-      return { success: true, data: data || [] };
+      // Obtener estado de confirmación para cada usuario
+      const usuariosConEstado = [];
+      
+      for (const usuario of usuarios || []) {
+        try {
+          const { data: authInfo, error: rpcError } = await supabase.rpc('get_user_auth_info', { 
+            user_uuid: usuario.UserId 
+          });
+          
+          console.log(`📧 Estado email para ${usuario.Email}:`, authInfo);
+          
+          const emailConfirmado = authInfo?.email_confirmed === true;
+          
+          usuariosConEstado.push({
+            ...usuario,
+            emailConfirmado,
+            estadoEmail: emailConfirmado ? 'Confirmado' : 'Sin confirmar'
+          });
+        } catch (authError) {
+          console.error('Error obteniendo info auth:', authError);
+          usuariosConEstado.push({
+            ...usuario,
+            emailConfirmado: false,
+            estadoEmail: 'Sin confirmar'
+          });
+        }
+      }
+
+      console.log('✅ Usuarios con estado procesados:', usuariosConEstado);
+      return { success: true, data: usuariosConEstado };
     } catch (error) {
       console.error('Error obteniendo usuarios:', error);
       return { success: false, error: error.message };
@@ -76,16 +108,69 @@ export class UsuariosService {
   }
 
   /**
-   * Crear nuevo usuario
-   * NOTA: La creación de usuarios debe hacerse a través de auth.signUp()
+   * Crear nuevo usuario a través de Supabase Auth
    */
   static async create(usuarioData) {
     try {
-      console.warn('⚠️ La creación de usuarios debe hacerse a través del sistema de autenticación');
-      return { 
-        success: false, 
-        error: 'La creación de usuarios debe hacerse a través del sistema de autenticación de Supabase' 
-      };
+      const { NombreUsuario, Nombres, Apellidos, Email, password, Activo = true } = usuarioData;
+
+      // Validar campos requeridos
+      if (!Email || !password || !Nombres || !Apellidos) {
+        return { 
+          success: false, 
+          error: 'Email, contraseña, nombres y apellidos son requeridos' 
+        };
+      }
+
+      // Crear usuario en Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email: Email,
+        password: password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/administration/users`,
+          data: {
+            nombres: Nombres,
+            apellidos: Apellidos,
+            nombre_usuario: NombreUsuario || `${Nombres.toLowerCase()}.${Apellidos.toLowerCase()}`,
+            activo: Activo
+          }
+        }
+      });
+
+      if (error) {
+        console.error('❌ Error creando usuario en auth:', error);
+        let errorMessage = 'Error al crear usuario';
+        
+        if (error.message.includes('User already registered')) {
+          errorMessage = 'Este email ya está registrado';
+        } else if (error.message.includes('Password should be at least')) {
+          errorMessage = 'La contraseña debe tener al menos 6 caracteres';
+        } else if (error.message.includes('Invalid email')) {
+          errorMessage = 'Email inválido';
+        } else {
+          errorMessage = error.message;
+        }
+        
+        return { success: false, error: errorMessage };
+      }
+
+      if (data.user) {
+        console.log('✅ Usuario creado exitosamente en auth:', data.user.id);
+        
+        // El trigger handle_new_user debería crear automáticamente el registro en usuarios
+        // Esperamos un momento para que el trigger se ejecute
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        return { 
+          success: true, 
+          data: {
+            userId: data.user.id,
+            email: data.user.email
+          }
+        };
+      }
+
+      return { success: false, error: 'No se pudo crear el usuario' };
     } catch (error) {
       console.error('Error creando usuario:', error);
       return { success: false, error: error.message };
@@ -94,15 +179,32 @@ export class UsuariosService {
 
   /**
    * Actualizar usuario existente
-   * NOTA: Los metadatos de usuario se actualizan a través de auth.updateUser()
+   * Solo se pueden actualizar algunos campos en la tabla usuarios
    */
   static async update(id, usuarioData) {
     try {
-      console.warn('⚠️ La actualización de usuarios debe hacerse a través del sistema de autenticación');
-      return { 
-        success: false, 
-        error: 'La actualización de usuarios debe hacerse a través del sistema de autenticación de Supabase' 
-      };
+      const { Nombres, Apellidos, NombreUsuario, Activo } = usuarioData;
+
+      // Solo actualizamos los campos permitidos en la tabla usuarios
+      const updates = {};
+      if (Nombres !== undefined) updates.Nombres = Nombres;
+      if (Apellidos !== undefined) updates.Apellidos = Apellidos;
+      if (NombreUsuario !== undefined) updates.NombreUsuario = NombreUsuario;
+      if (Activo !== undefined) updates.Activo = Activo;
+
+      const { data, error } = await supabase
+        .from('usuarios')
+        .update(updates)
+        .eq('IdUsuario', id)
+        .select();
+
+      if (error) {
+        console.error('❌ Error actualizando usuario:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('✅ Usuario actualizado exitosamente');
+      return { success: true, data: data[0] };
     } catch (error) {
       console.error('Error actualizando usuario:', error);
       return { success: false, error: error.message };

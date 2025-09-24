@@ -84,26 +84,7 @@ const UsersWithSupabase = () => {
     IdSucursal: "",
     NombreUsuario: "",
     Email: "",
-    Password: "",
-    ConfirmPassword: "",
-    
-    // Control de Acceso
-    DiasRegulares: {
-      lunes: true,
-      martes: true,
-      miercoles: true,
-      jueves: true,
-      viernes: true
-    },
-    Sabado: {
-      activo: false,
-      desde: "08:00"
-    },
-    Domingo: {
-      activo: false,
-      desde: "08:00"
-    },
-    
+    password: "",
     Activo: true,
   });
 
@@ -377,26 +358,7 @@ const UsersWithSupabase = () => {
       IdSucursal: "",
       NombreUsuario: "",
       Email: "",
-      Password: "",
-      ConfirmPassword: "",
-      
-      // Control de Acceso
-      DiasRegulares: {
-        lunes: true,
-        martes: true,
-        miercoles: true,
-        jueves: true,
-        viernes: true
-      },
-      Sabado: {
-        activo: false,
-        desde: "08:00"
-      },
-      Domingo: {
-        activo: false,
-        desde: "08:00"
-      },
-      
+      password: "",
       Activo: true,
     });
     setSelectedUser(null);
@@ -603,6 +565,7 @@ const UsersWithSupabase = () => {
                 <TableCell>Nombres</TableCell>
                 <TableCell>Apellidos</TableCell>
                 <TableCell>Email</TableCell>
+                <TableCell>Estado Email</TableCell>
                 <TableCell>Estado</TableCell>
                 <TableCell>Fecha Creación</TableCell>
                 <TableCell align="center">Acciones</TableCell>
@@ -610,19 +573,19 @@ const UsersWithSupabase = () => {
             </TableHead>
             <TableBody>
               {loading ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    <CircularProgress size={24} />
-                  </TableCell>
-                </TableRow>
+                 <TableRow>
+                   <TableCell colSpan={8} align="center">
+                     <CircularProgress size={24} />
+                   </TableCell>
+                 </TableRow>
               ) : paginatedUsers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    <Typography variant="body2" color="text.secondary">
-                      No se encontraron usuarios
-                    </Typography>
-                  </TableCell>
-                </TableRow>
+                 <TableRow>
+                   <TableCell colSpan={8} align="center">
+                     <Typography variant="body2" color="text.secondary">
+                       No se encontraron usuarios
+                     </Typography>
+                   </TableCell>
+                 </TableRow>
               ) : (
                 paginatedUsers.map((user) => (
                   <TableRow key={user.IdUsuario} hover>
@@ -636,16 +599,23 @@ const UsersWithSupabase = () => {
                         </Typography>
                       </Stack>
                     </TableCell>
-                    <TableCell>{user.Nombres}</TableCell>
-                    <TableCell>{user.Apellidos}</TableCell>
-                    <TableCell>{user.Email}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={user.Activo ? "Activo" : "Inactivo"}
-                        color={user.Activo ? "success" : "default"}
-                        size="small"
-                      />
-                    </TableCell>
+                     <TableCell>{user.Nombres}</TableCell>
+                     <TableCell>{user.Apellidos}</TableCell>
+                     <TableCell>{user.Email}</TableCell>
+                     <TableCell>
+                       <Chip
+                         label={user.estadoEmail || 'Sin confirmar'}
+                         color={user.emailConfirmado === true ? "success" : "warning"}
+                         size="small"
+                       />
+                     </TableCell>
+                     <TableCell>
+                       <Chip
+                         label={user.Activo ? "Activo" : "Inactivo"}
+                         color={user.Activo ? "success" : "default"}
+                         size="small"
+                       />
+                     </TableCell>
                     <TableCell>
                       {user.FechaCreacion ? new Date(user.FechaCreacion).toLocaleDateString() : "-"}
                     </TableCell>
@@ -707,13 +677,19 @@ const UsersWithSupabase = () => {
           {dialogMode === "view" && "Detalles de Usuario"}
         </DialogTitle>
         <DialogContent>
-          <Box sx={{ mt: 2 }}>
-            {/* Información Personal */}
-            <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h6" gutterBottom color="primary">
-                Información Personal
-              </Typography>
+          <Box sx={{ p: 2 }}>
+            <Paper elevation={1} sx={{ p: 3 }}>
               <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Nombre de Usuario"
+                    value={dialogMode === "view" ? selectedUser?.NombreUsuario || "" : formData.NombreUsuario}
+                    onChange={(e) => handleFormChange("NombreUsuario", e.target.value)}
+                    disabled={dialogMode === "view"}
+                    required
+                  />
+                </Grid>
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
@@ -737,6 +713,17 @@ const UsersWithSupabase = () => {
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
+                    label="Email"
+                    type="email"
+                    value={dialogMode === "view" ? selectedUser?.Email || "" : formData.Email}
+                    onChange={(e) => handleFormChange("Email", e.target.value)}
+                    disabled={dialogMode === "view"}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
                     label="Dirección"
                     value={dialogMode === "view" ? selectedUser?.Direccion || "" : formData.Direccion}
                     onChange={(e) => handleFormChange("Direccion", e.target.value)}
@@ -752,15 +739,6 @@ const UsersWithSupabase = () => {
                     disabled={dialogMode === "view"}
                   />
                 </Grid>
-              </Grid>
-            </Paper>
-
-            {/* Información de su cuenta */}
-            <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h6" gutterBottom color="primary">
-                Información de su cuenta
-              </Typography>
-              <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                   <FormControl fullWidth disabled={dialogMode === "view"}>
                     <InputLabel>Empresa</InputLabel>
@@ -793,148 +771,19 @@ const UsersWithSupabase = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Nombre de Usuario"
-                    value={dialogMode === "view" ? selectedUser?.NombreUsuario || "" : formData.NombreUsuario}
-                    onChange={(e) => handleFormChange("NombreUsuario", e.target.value)}
-                    disabled={dialogMode === "view"}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Email"
-                    type="email"
-                    value={dialogMode === "view" ? selectedUser?.Email || "" : formData.Email}
-                    onChange={(e) => handleFormChange("Email", e.target.value)}
-                    disabled={dialogMode === "view"}
-                    required
-                  />
-                </Grid>
                 {dialogMode === "create" && (
-                  <>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Contraseña"
-                        type="password"
-                        value={formData.Password}
-                        onChange={(e) => handleFormChange("Password", e.target.value)}
-                        required
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Confirmar Contraseña"
-                        type="password"
-                        value={formData.ConfirmPassword}
-                        onChange={(e) => handleFormChange("ConfirmPassword", e.target.value)}
-                        required
-                        error={formData.Password !== formData.ConfirmPassword && formData.ConfirmPassword !== ""}
-                        helperText={
-                          formData.Password !== formData.ConfirmPassword && formData.ConfirmPassword !== ""
-                            ? "Las contraseñas no coinciden"
-                            : ""
-                        }
-                      />
-                    </Grid>
-                  </>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Contraseña"
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => handleFormChange("password", e.target.value)}
+                      required
+                      helperText="Mínimo 6 caracteres"
+                    />
+                  </Grid>
                 )}
-              </Grid>
-            </Paper>
-
-            {/* Control de acceso */}
-            <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h6" gutterBottom color="primary">
-                Control de acceso
-              </Typography>
-              
-              {/* Días regulares */}
-              <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
-                Días regulares
-              </Typography>
-              <FormGroup row>
-                {Object.entries(formData.DiasRegulares).map(([dia, activo]) => (
-                  <FormControlLabel
-                    key={dia}
-                    control={
-                      <Checkbox
-                        checked={dialogMode === "view" ? selectedUser?.DiasRegulares?.[dia] || false : activo}
-                        onChange={(e) => handleFormChange("DiasRegulares", e.target.checked, dia)}
-                        disabled={dialogMode === "view"}
-                      />
-                    }
-                    label={dia.charAt(0).toUpperCase() + dia.slice(1)}
-                  />
-                ))}
-              </FormGroup>
-
-              {/* Días válidos para Sábado */}
-              <Typography variant="subtitle1" gutterBottom sx={{ mt: 3 }}>
-                Días válidos para Sábado
-              </Typography>
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} md={6}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={dialogMode === "view" ? selectedUser?.Sabado?.activo || false : formData.Sabado.activo}
-                        onChange={(e) => handleFormChange("Sabado", e.target.checked, "activo")}
-                        disabled={dialogMode === "view"}
-                      />
-                    }
-                    label="Habilitar Sábado"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Desde"
-                    type="time"
-                    value={dialogMode === "view" ? selectedUser?.Sabado?.desde || "08:00" : formData.Sabado.desde}
-                    onChange={(e) => handleFormChange("Sabado", e.target.value, "desde")}
-                    disabled={dialogMode === "view" || !formData.Sabado.activo}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
-              </Grid>
-
-              {/* Días válidos para Domingo */}
-              <Typography variant="subtitle1" gutterBottom sx={{ mt: 3 }}>
-                Días válidos para Domingo
-              </Typography>
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} md={6}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={dialogMode === "view" ? selectedUser?.Domingo?.activo || false : formData.Domingo.activo}
-                        onChange={(e) => handleFormChange("Domingo", e.target.checked, "activo")}
-                        disabled={dialogMode === "view"}
-                      />
-                    }
-                    label="Habilitar Domingo"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Desde"
-                    type="time"
-                    value={dialogMode === "view" ? selectedUser?.Domingo?.desde || "08:00" : formData.Domingo.desde}
-                    onChange={(e) => handleFormChange("Domingo", e.target.value, "desde")}
-                    disabled={dialogMode === "view" || !formData.Domingo.activo}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
-              </Grid>
-
-              {/* Estado del usuario */}
-              <Grid container spacing={2} sx={{ mt: 2 }}>
                 <Grid item xs={12} md={6}>
                   <FormControl fullWidth disabled={dialogMode === "view"}>
                     <InputLabel>Estado</InputLabel>

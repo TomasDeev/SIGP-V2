@@ -372,7 +372,7 @@ export type Database = {
           EstadoCivil: number
           FechaIngreso: string
           FechaNacimiento: string | null
-          IdCuenta: number
+          IdCliente: number
           IdEmpresa: number
           Ingresos: number
           LugarNacimiento: string | null
@@ -398,7 +398,7 @@ export type Database = {
           EstadoCivil?: number
           FechaIngreso?: string
           FechaNacimiento?: string | null
-          IdCuenta?: number
+          IdCliente?: number
           IdEmpresa: number
           Ingresos?: number
           LugarNacimiento?: string | null
@@ -424,7 +424,7 @@ export type Database = {
           EstadoCivil?: number
           FechaIngreso?: string
           FechaNacimiento?: string | null
-          IdCuenta?: number
+          IdCliente?: number
           IdEmpresa?: number
           Ingresos?: number
           LugarNacimiento?: string | null
@@ -593,15 +593,19 @@ export type Database = {
           Cuotas: number
           Direccion: string
           DireccionAbogado: string
+          EmpresaContabilidadId: string | null
           EstadoCivilAbogado: number
           FechaCreacion: string
           GastoCierre: number
           IdEmpresa: number
+          Logo: string
+          MaxAbonoPorcentaje: number | null
           MaxAbonoSobreCapital: number
           MinAbonoSobreCapital: number
           Mora: number
           NoCuenta: string
           NombreComercial: string
+          Notario: string | null
           Penalidad: number
           Presidente: string
           RazonSocial: string
@@ -609,7 +613,6 @@ export type Database = {
           RNC: string
           Tasa: number
           Telefono: string | null
-          UrlLogo: string
         }
         Insert: {
           Abogado: string
@@ -622,15 +625,19 @@ export type Database = {
           Cuotas?: number
           Direccion: string
           DireccionAbogado: string
+          EmpresaContabilidadId?: string | null
           EstadoCivilAbogado?: number
           FechaCreacion?: string
           GastoCierre?: number
           IdEmpresa?: number
+          Logo?: string
+          MaxAbonoPorcentaje?: number | null
           MaxAbonoSobreCapital?: number
           MinAbonoSobreCapital?: number
           Mora?: number
           NoCuenta?: string
           NombreComercial: string
+          Notario?: string | null
           Penalidad?: number
           Presidente: string
           RazonSocial: string
@@ -638,7 +645,6 @@ export type Database = {
           RNC: string
           Tasa?: number
           Telefono?: string | null
-          UrlLogo?: string
         }
         Update: {
           Abogado?: string
@@ -651,15 +657,19 @@ export type Database = {
           Cuotas?: number
           Direccion?: string
           DireccionAbogado?: string
+          EmpresaContabilidadId?: string | null
           EstadoCivilAbogado?: number
           FechaCreacion?: string
           GastoCierre?: number
           IdEmpresa?: number
+          Logo?: string
+          MaxAbonoPorcentaje?: number | null
           MaxAbonoSobreCapital?: number
           MinAbonoSobreCapital?: number
           Mora?: number
           NoCuenta?: string
           NombreComercial?: string
+          Notario?: string | null
           Penalidad?: number
           Presidente?: string
           RazonSocial?: string
@@ -667,7 +677,6 @@ export type Database = {
           RNC?: string
           Tasa?: number
           Telefono?: string | null
-          UrlLogo?: string
         }
         Relationships: []
       }
@@ -985,7 +994,7 @@ export type Database = {
             columns: ["IdCuenta"]
             isOneToOne: false
             referencedRelation: "cuentas"
-            referencedColumns: ["IdCuenta"]
+            referencedColumns: ["IdCliente"]
           },
           {
             foreignKeyName: "FK_Localizaciones_Municipios"
@@ -1408,7 +1417,7 @@ export type Database = {
             columns: ["IdCuenta"]
             isOneToOne: false
             referencedRelation: "cuentas"
-            referencedColumns: ["IdCuenta"]
+            referencedColumns: ["IdCliente"]
           },
           {
             foreignKeyName: "FK_Prestamos_Empresas"
@@ -1690,7 +1699,7 @@ export type Database = {
             columns: ["IdCuenta"]
             isOneToOne: false
             referencedRelation: "cuentas"
-            referencedColumns: ["IdCuenta"]
+            referencedColumns: ["IdCliente"]
           },
           {
             foreignKeyName: "FK_ReferenciasPersonales_Tipos"
@@ -1752,6 +1761,149 @@ export type Database = {
         }
         Relationships: []
       }
+      sucursales: {
+        Row: {
+          Abogado: string | null
+          Activo: boolean
+          Alguacil: string | null
+          Banco: string | null
+          CedulaAbogado: string | null
+          CedulaGerente: string | null
+          CedulaPresidente: string | null
+          Codigo: string
+          CostoBasico: number | null
+          Cuotas: number | null
+          CuotasVencidas: number | null
+          DiasTransacciones: number | null
+          Direccion: string
+          DireccionAbogado: string | null
+          DireccionGerente: string | null
+          Email: string | null
+          EmailGerente: string | null
+          EstadoCivilAbogado: number | null
+          FechaCreacion: string
+          GastoCierre: number | null
+          Gerente: string | null
+          IdEmpresa: number
+          IdSucursal: number
+          MaxAbonoCapital: number | null
+          MinAbonoCapital: number | null
+          Mora: number | null
+          Nombre: string
+          NombreComercial: string | null
+          NumeroCuenta: string | null
+          PagoMinimoVencido: number | null
+          PenalidadAbono: number | null
+          Presidente: string | null
+          PrimerTestigo: string | null
+          ProcesoLegalAutomatico: boolean | null
+          RazonSocial: string | null
+          RegID: string
+          RNC: string | null
+          SegundoTestigo: string | null
+          Tasa: number | null
+          Telefono: string | null
+          TelefonoGerente: string | null
+          TipoRecibo: string | null
+        }
+        Insert: {
+          Abogado?: string | null
+          Activo?: boolean
+          Alguacil?: string | null
+          Banco?: string | null
+          CedulaAbogado?: string | null
+          CedulaGerente?: string | null
+          CedulaPresidente?: string | null
+          Codigo: string
+          CostoBasico?: number | null
+          Cuotas?: number | null
+          CuotasVencidas?: number | null
+          DiasTransacciones?: number | null
+          Direccion: string
+          DireccionAbogado?: string | null
+          DireccionGerente?: string | null
+          Email?: string | null
+          EmailGerente?: string | null
+          EstadoCivilAbogado?: number | null
+          FechaCreacion?: string
+          GastoCierre?: number | null
+          Gerente?: string | null
+          IdEmpresa: number
+          IdSucursal?: number
+          MaxAbonoCapital?: number | null
+          MinAbonoCapital?: number | null
+          Mora?: number | null
+          Nombre: string
+          NombreComercial?: string | null
+          NumeroCuenta?: string | null
+          PagoMinimoVencido?: number | null
+          PenalidadAbono?: number | null
+          Presidente?: string | null
+          PrimerTestigo?: string | null
+          ProcesoLegalAutomatico?: boolean | null
+          RazonSocial?: string | null
+          RegID?: string
+          RNC?: string | null
+          SegundoTestigo?: string | null
+          Tasa?: number | null
+          Telefono?: string | null
+          TelefonoGerente?: string | null
+          TipoRecibo?: string | null
+        }
+        Update: {
+          Abogado?: string | null
+          Activo?: boolean
+          Alguacil?: string | null
+          Banco?: string | null
+          CedulaAbogado?: string | null
+          CedulaGerente?: string | null
+          CedulaPresidente?: string | null
+          Codigo?: string
+          CostoBasico?: number | null
+          Cuotas?: number | null
+          CuotasVencidas?: number | null
+          DiasTransacciones?: number | null
+          Direccion?: string
+          DireccionAbogado?: string | null
+          DireccionGerente?: string | null
+          Email?: string | null
+          EmailGerente?: string | null
+          EstadoCivilAbogado?: number | null
+          FechaCreacion?: string
+          GastoCierre?: number | null
+          Gerente?: string | null
+          IdEmpresa?: number
+          IdSucursal?: number
+          MaxAbonoCapital?: number | null
+          MinAbonoCapital?: number | null
+          Mora?: number | null
+          Nombre?: string
+          NombreComercial?: string | null
+          NumeroCuenta?: string | null
+          PagoMinimoVencido?: number | null
+          PenalidadAbono?: number | null
+          Presidente?: string | null
+          PrimerTestigo?: string | null
+          ProcesoLegalAutomatico?: boolean | null
+          RazonSocial?: string | null
+          RegID?: string
+          RNC?: string | null
+          SegundoTestigo?: string | null
+          Tasa?: number | null
+          Telefono?: string | null
+          TelefonoGerente?: string | null
+          TipoRecibo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "FK_Sucursales_Empresas"
+            columns: ["IdEmpresa"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["IdEmpresa"]
+          },
+        ]
+      }
       tasaciones: {
         Row: {
           IdModelo: number
@@ -1812,7 +1964,7 @@ export type Database = {
             columns: ["IdCuenta"]
             isOneToOne: false
             referencedRelation: "cuentas"
-            referencedColumns: ["IdCuenta"]
+            referencedColumns: ["IdCliente"]
           },
         ]
       }
@@ -1847,7 +1999,7 @@ export type Database = {
             columns: ["IdCuenta"]
             isOneToOne: false
             referencedRelation: "cuentas"
-            referencedColumns: ["IdCuenta"]
+            referencedColumns: ["IdCliente"]
           },
           {
             foreignKeyName: "FK_Traspasos_Prestamos"
@@ -2000,7 +2152,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_auth_info: {
+        Args: { user_uuid: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
