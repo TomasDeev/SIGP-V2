@@ -453,8 +453,8 @@ const UsersWithSupabase = () => {
                      <TableCell>{user.Email}</TableCell>
                      <TableCell>
                        <Chip
-                         label={user.estadoEmail || (user.Email === 'admin@sigp.com' ? 'Sin confirmar' : 'Confirmado')}
-                         color={user.emailConfirmado !== false && user.Email !== 'admin@sigp.com' ? "success" : "warning"}
+                         label={user.estadoEmail || 'Sin confirmar'}
+                         color={user.emailConfirmado === true ? "success" : "warning"}
                          size="small"
                        />
                      </TableCell>
