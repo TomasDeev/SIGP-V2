@@ -414,6 +414,7 @@ const UsersWithSupabase = () => {
                 <TableCell>Nombres</TableCell>
                 <TableCell>Apellidos</TableCell>
                 <TableCell>Email</TableCell>
+                <TableCell>Estado Email</TableCell>
                 <TableCell>Estado</TableCell>
                 <TableCell>Fecha Creación</TableCell>
                 <TableCell align="center">Acciones</TableCell>
@@ -421,19 +422,19 @@ const UsersWithSupabase = () => {
             </TableHead>
             <TableBody>
               {loading ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    <CircularProgress size={24} />
-                  </TableCell>
-                </TableRow>
+                 <TableRow>
+                   <TableCell colSpan={8} align="center">
+                     <CircularProgress size={24} />
+                   </TableCell>
+                 </TableRow>
               ) : paginatedUsers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    <Typography variant="body2" color="text.secondary">
-                      No se encontraron usuarios
-                    </Typography>
-                  </TableCell>
-                </TableRow>
+                 <TableRow>
+                   <TableCell colSpan={8} align="center">
+                     <Typography variant="body2" color="text.secondary">
+                       No se encontraron usuarios
+                     </Typography>
+                   </TableCell>
+                 </TableRow>
               ) : (
                 paginatedUsers.map((user) => (
                   <TableRow key={user.IdUsuario} hover>
@@ -447,16 +448,23 @@ const UsersWithSupabase = () => {
                         </Typography>
                       </Stack>
                     </TableCell>
-                    <TableCell>{user.Nombres}</TableCell>
-                    <TableCell>{user.Apellidos}</TableCell>
-                    <TableCell>{user.Email}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={user.Activo ? "Activo" : "Inactivo"}
-                        color={user.Activo ? "success" : "default"}
-                        size="small"
-                      />
-                    </TableCell>
+                     <TableCell>{user.Nombres}</TableCell>
+                     <TableCell>{user.Apellidos}</TableCell>
+                     <TableCell>{user.Email}</TableCell>
+                     <TableCell>
+                       <Chip
+                         label={user.estadoEmail || (user.Email === 'admin@sigp.com' ? 'Sin confirmar' : 'Confirmado')}
+                         color={user.emailConfirmado !== false && user.Email !== 'admin@sigp.com' ? "success" : "warning"}
+                         size="small"
+                       />
+                     </TableCell>
+                     <TableCell>
+                       <Chip
+                         label={user.Activo ? "Activo" : "Inactivo"}
+                         color={user.Activo ? "success" : "default"}
+                         size="small"
+                       />
+                     </TableCell>
                     <TableCell>
                       {user.FechaCreacion ? new Date(user.FechaCreacion).toLocaleDateString() : "-"}
                     </TableCell>
