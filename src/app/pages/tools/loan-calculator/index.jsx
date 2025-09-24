@@ -29,9 +29,12 @@ import DateRangeIcon from "@mui/icons-material/DateRange";
 import SecurityIcon from "@mui/icons-material/Security";
 import GpsFixedIcon from "@mui/icons-material/GpsFixed";
 import CloseIcon from "@mui/icons-material/Close";
+import AssignmentIcon from "@mui/icons-material/Assignment";
+import { useNavigate } from "react-router-dom";
 
 export default function LoanCalculatorPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   
   // Estados para los campos de entrada
   const [capital, setCapital] = useState("");
@@ -216,6 +219,32 @@ export default function LoanCalculatorPage() {
     setAmortizationTable([]);
     setSummary(null);
     setError("");
+  };
+
+  const handleFillLoanApplication = () => {
+    // Guardar los datos del préstamo en localStorage
+    const loanData = {
+      capital: parseFloat(capital) || 0,
+      plazoMeses: parseInt(plazoMeses) || 0,
+      tasaInteresMensual: parseFloat(tasaInteresMensual) || 0,
+      montoCierre: parseFloat(montoCierre) || 0,
+      fechaInicial,
+      tieneSeguro,
+      tieneGPS,
+      montoTotalSeguro: parseFloat(montoTotalSeguro) || 0,
+      cuotasSeguro: parseInt(cuotasSeguro) || 0,
+      montoTotalGPS: parseFloat(montoTotalGPS) || 0,
+      cuotasGPS: parseInt(cuotasGPS) || 0,
+      seguroMensual: parseFloat(seguroMensual) || 0,
+      gpsMensual: parseFloat(gpsMensual) || 0,
+      summary,
+      amortizationTable
+    };
+
+    localStorage.setItem('loanCalculationData', JSON.stringify(loanData));
+    
+    // Navegar al onboarding-2 para llenar los datos del préstamo
+    navigate('/onboarding-2');
   };
 
   const formatCurrency = (amount) => {
@@ -482,7 +511,7 @@ export default function LoanCalculatorPage() {
                     </Alert>
                   )}
 
-                  <Box sx={{ mt: 3, display: "flex", gap: 2, justifyContent: "center" }}>
+                  <Box sx={{ mt: 3, display: "flex", gap: 2, justifyContent: "center", flexWrap: "wrap" }}>
                     <Button
                       variant="contained"
                       onClick={calculateLoan}
@@ -490,6 +519,16 @@ export default function LoanCalculatorPage() {
                       sx={{ minWidth: 200 }}
                     >
                       Calcular Amortización
+                    </Button>
+                    <Button
+                      variant="contained"
+                      color="success"
+                      onClick={handleFillLoanApplication}
+                      startIcon={<AssignmentIcon />}
+                      sx={{ minWidth: 200 }}
+                      disabled={!capital || !plazoMeses}
+                    >
+                      Llenar Préstamo
                     </Button>
                     <Button
                       variant="outlined"

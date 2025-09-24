@@ -30,11 +30,16 @@ import { OnboardingAction } from "@app/_components/onboarding/common";
 import { JumboCard } from "@jumbo/components";
 import AddIcon from "@mui/icons-material/Add";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import AssignmentIcon from "@mui/icons-material/Assignment";
 import { useUserCompany } from "@app/_hooks/useUserCompany";
+import { useNavigate } from "react-router-dom";
 
 const LoanCalculation = () => {
   // Hook para obtener datos de la empresa del usuario
   const { companyData, getDefaults, loading: companyLoading } = useUserCompany();
+  
+  // Hook para navegación
+  const navigate = useNavigate();
   
   // Estados para el formulario
   const [selectedAgent, setSelectedAgent] = useState("");
@@ -101,6 +106,51 @@ const LoanCalculation = () => {
     }
   }, [companyData, companyLoading, getDefaults]);
 
+  // Efecto para cargar datos del localStorage cuando se navega desde la calculadora de préstamos
+  useEffect(() => {
+    try {
+      const savedLoanData = localStorage.getItem('loanCalculationData');
+      if (savedLoanData) {
+        const parsedData = JSON.parse(savedLoanData);
+        
+        // Mapear los datos de la calculadora a los campos del onboarding-2
+        setLoanData(prev => ({
+          ...prev,
+          capital: parsedData.capital?.toString() || "",
+          gastoCierre: parsedData.montoCierre?.toString() || "",
+          tasaInteres: parsedData.tasaInteresMensual?.toString() || prev.tasaInteres,
+          cantidadCuotas: parsedData.plazoMeses?.toString() || prev.cantidadCuotas,
+          fechaContrato: parsedData.fechaInicial || "",
+          fechaPrimerPago: parsedData.fechaInicial || "",
+        }));
+
+        // Configurar datos de seguro y GPS si están disponibles
+        if (parsedData.tieneSeguro) {
+          setShowAdditionalValues(true);
+          setInsuranceData({
+            montoSeguro: parsedData.montoTotalSeguro || 0,
+            aplicarSeguroDesde: 1,
+            aplicarSeguroHasta: parsedData.plazoMeses || 12,
+          });
+        }
+
+        if (parsedData.tieneGPS) {
+          setShowAdditionalValues(true);
+          setGpsData({
+            montoGps: parsedData.montoTotalGPS || 0,
+            aplicarGpsDesde: 1,
+            aplicarGpsHasta: parsedData.plazoMeses || 12,
+          });
+        }
+
+        // Limpiar los datos del localStorage después de usarlos
+        localStorage.removeItem('loanCalculationData');
+      }
+    } catch (error) {
+      console.error('Error al cargar datos de la calculadora:', error);
+    }
+  }, []); // Solo ejecutar una vez al montar el componente
+
   // Efecto para calcular automáticamente el gasto de cierre cuando cambie el capital
   useEffect(() => {
     if (loanData.capital && !isNaN(parseFloat(loanData.capital))) {
@@ -117,14 +167,24 @@ const LoanCalculation = () => {
 
   // Función para generar la descripción automática del plan de pago
   const generatePlanDescription = () => {
-    const capital = parseFloat(loanData.capital) || 0;
-    const cuotas = parseInt(loanData.cantidadCuotas) || 12;
-    const tasa = parseFloat(loanData.tasaInteres) / 100 || 0.025;
+    const capitalNum = parseFloat(loanData.capital) || 0;
+    const plazoNum = parseInt(loanData.cantidadCuotas) || 12;
+    const tasaNum = parseFloat(loanData.tasaInteres) || 0;
+    const cierreNum = parseFloat(loanData.gastoCierre) || 0;
+    const roundMultipleNum = 10;
+    const seguroNum = parseFloat(insuranceData.montoSeguro) / plazoNum || 0;
+    const gpsNum = parseFloat(gpsData.montoGps) / plazoNum || 0;
     
-    if (capital === 0) return "";
+    if (capitalNum === 0) return "";
 
-    // Calcular la cuota mensual usando la fórmula de amortización francesa
-    const cuotaMensual = (capital * tasa * Math.pow(1 + tasa, cuotas)) / (Math.pow(1 + tasa, cuotas) - 1);
+    // Usar la misma lógica que loan-calculator
+    const interesBase = (capitalNum + cierreNum) * (tasaNum / 100);
+    const capitalExacto = capitalNum / plazoNum;
+    const cierreExacto = cierreNum / plazoNum;
+    
+    // Calcular cuota preliminar (para cuotas regulares)
+    const cuotaPreliminar = capitalExacto + cierreExacto + interesBase + seguroNum + gpsNum;
+    const cuotaMensual = roundToNearestMultiple(cuotaPreliminar, roundMultipleNum);
     
     // Formatear la descripción
     const cuotaFormateada = cuotaMensual.toLocaleString('es-DO', {
@@ -132,7 +192,7 @@ const LoanCalculation = () => {
       maximumFractionDigits: 2
     });
 
-    return `${cuotas} Cuotas En Total: ${cuotas} De ${cuotaFormateada}`;
+    return `${plazoNum} Cuotas En Total: ${plazoNum} De ${cuotaFormateada}`;
   };
 
   // Efecto para actualizar la descripción automáticamente
@@ -183,37 +243,129 @@ const LoanCalculation = () => {
     return montoGps * cuotasConGps;
   };
 
-  // Función para generar datos de amortización (simulada)
+  // Funciones auxiliares para redondeo (igual que en loan-calculator)
+  const roundToNearestMultiple = (value, multiple) => {
+    const remainder = value % multiple;
+    if (remainder === 0) return value;
+    
+    // Si hay empate, redondear hacia arriba
+    if (remainder >= multiple / 2) {
+      return value + (multiple - remainder);
+    } else {
+      return value - remainder;
+    }
+  };
+
+  const roundTo2Decimals = (value) => {
+    return Math.round(value * 100) / 100;
+  };
+
+  // Función para generar datos de amortización (usando la misma lógica que loan-calculator)
   const generateAmortizationData = () => {
-    const capital = parseFloat(loanData.capital) || 0;
-    const cuotas = parseInt(loanData.cantidadCuotas) || 12;
-    const tasa = parseFloat(loanData.tasaInteres) / 100 || 0.025;
+    const capitalNum = parseFloat(loanData.capital) || 0;
+    const plazoNum = parseInt(loanData.cantidadCuotas) || 12;
+    const tasaNum = parseFloat(loanData.tasaInteres) || 0;
+    const cierreNum = parseFloat(loanData.gastoCierre) || 0;
+    const roundMultipleNum = 10; // Valor por defecto para redondeo
+    const seguroNum = parseFloat(insuranceData.montoSeguro) / plazoNum || 0;
+    const gpsNum = parseFloat(gpsData.montoGps) / plazoNum || 0;
     
-    if (capital === 0) return [];
+    if (capitalNum === 0) return [];
 
-    const cuotaMensual = (capital * tasa * Math.pow(1 + tasa, cuotas)) / (Math.pow(1 + tasa, cuotas) - 1);
+    // Cálculos según las reglas del sistema de referencia (igual que loan-calculator)
     
-    const amortizationTable = [];
-    let saldoPendiente = capital;
+    // 1. Base de interés: (capital + cierre_total) * (tasa_mensual_percent / 100)
+    const interesBase = (capitalNum + cierreNum) * (tasaNum / 100);
+    
+    // 2. Capital por cuota (exacto)
+    const capitalExacto = capitalNum / plazoNum;
+    
+    // 3. Cierre por cuota (exacto)
+    const cierreExacto = cierreNum / plazoNum;
 
-    for (let i = 1; i <= cuotas; i++) {
-      const interes = saldoPendiente * tasa;
-      const capitalPago = cuotaMensual - interes;
-      saldoPendiente -= capitalPago;
+    // Crear tabla de amortización
+    const tabla = [];
+    const fechaBase = new Date(loanData.fechaContrato || new Date());
+    
+    let totalCapitalPagado = 0;
+    let totalCierrePagado = 0;
 
-      amortizationTable.push({
+    for (let i = 1; i <= plazoNum; i++) {
+      const fechaVencimiento = new Date(fechaBase);
+      fechaVencimiento.setMonth(fechaBase.getMonth() + i);
+      
+      let capitalCuota, cierreCuota, cuotaMostrada, interesMostrado;
+      
+      if (i === plazoNum) {
+        // Última cuota: ajuste final
+        capitalCuota = roundTo2Decimals(capitalNum - totalCapitalPagado);
+        cierreCuota = roundTo2Decimals(cierreNum - totalCierrePagado);
+        
+        // Cuota preliminar para la última cuota
+        const cuotaPreliminar = capitalCuota + cierreCuota + interesBase + seguroNum + gpsNum;
+        cuotaMostrada = roundToNearestMultiple(cuotaPreliminar, roundMultipleNum);
+        interesMostrado = roundTo2Decimals(cuotaMostrada - capitalCuota - cierreCuota - seguroNum - gpsNum);
+      } else {
+        // Cuotas regulares (1 a plazo_meses - 1)
+        capitalCuota = roundTo2Decimals(capitalExacto);
+        cierreCuota = roundTo2Decimals(cierreExacto);
+        
+        // Cuota preliminar
+        const cuotaPreliminar = capitalCuota + cierreCuota + interesBase + seguroNum + gpsNum;
+        cuotaMostrada = roundToNearestMultiple(cuotaPreliminar, roundMultipleNum);
+        interesMostrado = roundTo2Decimals(cuotaMostrada - capitalCuota - cierreCuota - seguroNum - gpsNum);
+      }
+      
+      totalCapitalPagado += capitalCuota;
+      totalCierrePagado += cierreCuota;
+      
+      tabla.push({
         cuota: i,
-        cuotaMensual: cuotaMensual.toFixed(2),
-        capital: capitalPago.toFixed(2),
-        interes: interes.toFixed(2),
-        saldoPendiente: Math.max(0, saldoPendiente).toFixed(2),
+        cuotaMensual: cuotaMostrada.toFixed(2),
+        capital: capitalCuota.toFixed(2),
+        interes: interesMostrado.toFixed(2),
+        saldoPendiente: (capitalNum - totalCapitalPagado).toFixed(2),
+        cierre: cierreCuota.toFixed(2),
+        seguro: seguroNum.toFixed(2),
+        gps: gpsNum.toFixed(2),
+        fechaVencimiento: fechaVencimiento.toLocaleDateString('es-ES'),
       });
     }
 
-    return amortizationTable;
+    return tabla;
   };
 
   const amortizationTable = generateAmortizationData();
+
+  // Función para transferir datos a la solicitud de crédito
+  const handleFillLoanApplication = () => {
+    // Preparar los datos calculados para transferir
+    const loanCalculationData = {
+      capital: parseFloat(loanData.capital) || 0,
+      gastoCierre: parseFloat(loanData.gastoCierre) || 0,
+      tasaInteres: parseFloat(loanData.tasaInteres) || 0,
+      cantidadCuotas: parseInt(loanData.cantidadCuotas) || 12,
+      fechaContrato: loanData.fechaContrato,
+      fechaPrimerPago: loanData.fechaPrimerPago,
+      // Datos de seguro y GPS
+      tieneSeguro: showAdditionalValues && insuranceData.montoSeguro > 0,
+      montoSeguro: insuranceData.montoSeguro || 0,
+      tieneGps: showAdditionalValues && gpsData.montoGps > 0,
+      montoGps: gpsData.montoGps || 0,
+      // Totales calculados
+      totalSeguro: calculateTotalInsurance(),
+      totalGps: calculateTotalGps(),
+      // Datos de amortización
+      amortizationTable: amortizationTable,
+      planDescription: planDescription
+    };
+
+    // Guardar los datos en localStorage para transferir entre páginas
+    localStorage.setItem('loanCalculationData', JSON.stringify(loanCalculationData));
+    
+    // Navegar a la página de solicitud de crédito
+    navigate('/tools/credit-application');
+  };
 
   return (
     <React.Fragment>
@@ -567,7 +719,7 @@ const LoanCalculation = () => {
             </Grid>
           </Grid>
           
-          <Box sx={{ mt: 2 }}>
+          <Box sx={{ mt: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             <Button
               variant="contained"
               size="small"
@@ -585,6 +737,28 @@ const LoanCalculation = () => {
               }}
             >
               Ver Amortización
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<AssignmentIcon />}
+              onClick={handleFillLoanApplication}
+              disabled={!loanData.capital || !loanData.cantidadCuotas}
+              sx={{
+                fontSize: '0.75rem',
+                py: 0.5,
+                px: 1.5,
+                minHeight: 'auto',
+                backgroundColor: '#4caf50',
+                '&:hover': {
+                  backgroundColor: '#45a049',
+                },
+                '& .MuiSvgIcon-root': {
+                  fontSize: '1rem'
+                }
+              }}
+            >
+              Llenar Préstamo
             </Button>
           </Box>
         </Box>
@@ -657,7 +831,7 @@ const LoanCalculation = () => {
       </Dialog>
 
       {/* Dialog para ver amortización */}
-      <Dialog open={openAmortizationDialog} onClose={() => setOpenAmortizationDialog(false)} maxWidth="lg" fullWidth>
+      <Dialog open={openAmortizationDialog} onClose={() => setOpenAmortizationDialog(false)} maxWidth="xl" fullWidth>
         <DialogTitle sx={{ 
           backgroundColor: 'primary.main', 
           color: 'white', 
@@ -786,7 +960,34 @@ const LoanCalculation = () => {
                     borderBottom: '1px solid #d0d7de',
                     py: 2
                   }}>
+                    Cierre
+                  </TableCell>
+                  <TableCell align="right" sx={{ 
+                    color: '#24292f', 
+                    fontWeight: 600, 
+                    fontSize: '0.875rem',
+                    borderBottom: '1px solid #d0d7de',
+                    py: 2
+                  }}>
                     Interés
+                  </TableCell>
+                  <TableCell align="right" sx={{ 
+                    color: '#24292f', 
+                    fontWeight: 600, 
+                    fontSize: '0.875rem',
+                    borderBottom: '1px solid #d0d7de',
+                    py: 2
+                  }}>
+                    Seguro
+                  </TableCell>
+                  <TableCell align="right" sx={{ 
+                    color: '#24292f', 
+                    fontWeight: 600, 
+                    fontSize: '0.875rem',
+                    borderBottom: '1px solid #d0d7de',
+                    py: 2
+                  }}>
+                    GPS
                   </TableCell>
                   <TableCell align="right" sx={{ 
                     color: '#24292f', 
@@ -828,7 +1029,10 @@ const LoanCalculation = () => {
                       color: '#24292f',
                       py: 1.5
                     }}>
-                      RD$ {parseFloat(row.cuotaMensual).toLocaleString()}
+                      RD$ {parseFloat(row.cuotaMensual).toLocaleString('es-DO', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })}
                     </TableCell>
                     <TableCell align="right" sx={{ 
                       fontWeight: 400,
@@ -836,7 +1040,10 @@ const LoanCalculation = () => {
                       color: '#656d76',
                       py: 1.5
                     }}>
-                      RD$ {parseFloat(row.capital).toLocaleString()}
+                      RD$ {parseFloat(row.capital).toLocaleString('es-DO', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })}
                     </TableCell>
                     <TableCell align="right" sx={{ 
                       fontWeight: 400,
@@ -844,7 +1051,43 @@ const LoanCalculation = () => {
                       color: '#656d76',
                       py: 1.5
                     }}>
-                      RD$ {parseFloat(row.interes).toLocaleString()}
+                      RD$ {parseFloat(row.cierre || 0).toLocaleString('es-DO', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })}
+                    </TableCell>
+                    <TableCell align="right" sx={{ 
+                      fontWeight: 400,
+                      fontSize: '0.875rem',
+                      color: '#656d76',
+                      py: 1.5
+                    }}>
+                      RD$ {parseFloat(row.interes).toLocaleString('es-DO', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })}
+                    </TableCell>
+                    <TableCell align="right" sx={{ 
+                      fontWeight: 400,
+                      fontSize: '0.875rem',
+                      color: '#656d76',
+                      py: 1.5
+                    }}>
+                      RD$ {parseFloat(row.seguro || 0).toLocaleString('es-DO', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })}
+                    </TableCell>
+                    <TableCell align="right" sx={{ 
+                      fontWeight: 400,
+                      fontSize: '0.875rem',
+                      color: '#656d76',
+                      py: 1.5
+                    }}>
+                      RD$ {parseFloat(row.gps || 0).toLocaleString('es-DO', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })}
                     </TableCell>
                     <TableCell align="right" sx={{ 
                       fontWeight: 500,
@@ -852,7 +1095,10 @@ const LoanCalculation = () => {
                       color: parseFloat(row.saldoPendiente) === 0 ? '#1a7f37' : '#24292f',
                       py: 1.5
                     }}>
-                      RD$ {parseFloat(row.saldoPendiente).toLocaleString()}
+                      RD$ {parseFloat(row.saldoPendiente).toLocaleString('es-DO', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -865,7 +1111,7 @@ const LoanCalculation = () => {
         <DialogActions sx={{ p: 2, backgroundColor: '#f8f9fa' }}>
           <Button 
             onClick={() => setOpenAmortizationDialog(false)}
-            variant="contained"
+            variant="outlined"
             size="small"
             sx={{ 
               minWidth: 100,

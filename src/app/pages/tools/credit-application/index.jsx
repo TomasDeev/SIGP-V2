@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -283,6 +283,43 @@ export default function CreditApplicationPage() {
     ingresos: "",
     proposito: "",
   });
+
+  // Estado para almacenar datos de la calculadora de préstamos
+  const [loanCalculationData, setLoanCalculationData] = useState(null);
+
+  // useEffect para cargar datos de la calculadora de préstamos si existen
+  useEffect(() => {
+    const savedLoanData = localStorage.getItem('loanCalculationData');
+    if (savedLoanData) {
+      try {
+        const parsedData = JSON.parse(savedLoanData);
+        setLoanCalculationData(parsedData);
+        
+        // Pre-llenar el formulario con los datos de la calculadora
+        setFormData(prev => ({
+          ...prev,
+          monto: parsedData.capital ? parsedData.capital.toString() : "",
+          // Agregar información adicional en el propósito
+          proposito: `Préstamo calculado con los siguientes parámetros:\n` +
+                    `- Capital: RD$ ${(parsedData.capital || 0).toLocaleString()}\n` +
+                    `- Tasa de interés: ${parsedData.tasaInteresMensual || 0}%\n` +
+                    `- Plazo: ${parsedData.plazoMeses || 0} cuotas\n` +
+                    `- Gastos de cierre: RD$ ${(parsedData.montoCierre || 0).toLocaleString()}\n` +
+                    `${parsedData.tieneSeguro ? `- Seguro: RD$ ${(parsedData.montoTotalSeguro || 0).toLocaleString()}\n` : ''}` +
+                    `${parsedData.tieneGPS ? `- GPS: RD$ ${(parsedData.montoTotalGPS || 0).toLocaleString()}\n` : ''}` +
+                    `\nResumen de cálculos disponible en la tabla de amortización.`
+        }));
+
+        // Limpiar los datos del localStorage después de usarlos
+        localStorage.removeItem('loanCalculationData');
+        
+        // Abrir automáticamente el diálogo para crear nueva solicitud
+        setOpenDialog(true);
+      } catch (error) {
+        console.error('Error al cargar datos de la calculadora:', error);
+      }
+    }
+  }, []);
 
   const handleOpenDialog = () => {
     setOpenDialog(true);
@@ -655,6 +692,73 @@ export default function CreditApplicationPage() {
         </DialogTitle>
         
         <DialogContent sx={{ p: 4 }}>
+          {/* Mostrar datos de la calculadora si están disponibles */}
+          {loanCalculationData && (
+            <Box sx={{ mb: 4, p: 3, bgcolor: '#f8f9fa', borderRadius: 2, border: '1px solid #e9ecef' }}>
+              <Typography variant="h6" fontWeight="600" color="primary.main" sx={{ mb: 2 }}>
+                🧮 Datos de la Calculadora de Préstamos
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={3}>
+                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.secondary">Capital</Typography>
+                    <Typography variant="h6" fontWeight="600" color="primary.main">
+                      RD$ {(loanCalculationData.capital || 0).toLocaleString()}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.secondary">Tasa de Interés</Typography>
+                    <Typography variant="h6" fontWeight="600" color="success.main">
+                      {loanCalculationData.tasaInteresMensual || 0}%
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.secondary">Plazo</Typography>
+                    <Typography variant="h6" fontWeight="600" color="info.main">
+                      {loanCalculationData.plazoMeses || 0} cuotas
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.secondary">Gastos de Cierre</Typography>
+                    <Typography variant="h6" fontWeight="600" color="warning.main">
+                      RD$ {(loanCalculationData.montoCierre || 0).toLocaleString()}
+                    </Typography>
+                  </Box>
+                </Grid>
+                {(loanCalculationData.tieneSeguro || loanCalculationData.tieneGPS) && (
+                  <>
+                    {loanCalculationData.tieneSeguro && (
+                      <Grid item xs={12} md={6}>
+                        <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 1 }}>
+                          <Typography variant="body2" color="text.secondary">Seguro Total</Typography>
+                          <Typography variant="h6" fontWeight="600" color="secondary.main">
+                            RD$ {(loanCalculationData.montoTotalSeguro || 0).toLocaleString()}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    )}
+                    {loanCalculationData.tieneGPS && (
+                      <Grid item xs={12} md={6}>
+                        <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 1 }}>
+                          <Typography variant="body2" color="text.secondary">GPS Total</Typography>
+                          <Typography variant="h6" fontWeight="600" color="secondary.main">
+                            RD$ {(loanCalculationData.montoTotalGPS || 0).toLocaleString()}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    )}
+                  </>
+                )}
+              </Grid>
+            </Box>
+          )}
+          
           <Grid container spacing={2}>
             {/* Información Personal */}
             <Grid item xs={12}>
