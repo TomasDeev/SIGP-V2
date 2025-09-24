@@ -95,6 +95,7 @@ export class UsuariosService {
         email: Email,
         password: password,
         options: {
+          emailRedirectTo: `${window.location.origin}/administration/users`,
           data: {
             nombres: Nombres,
             apellidos: Apellidos,
