@@ -13,6 +13,7 @@ export class UsuariosService {
    */
   static async getAll() {
     try {
+      console.log('🔍 Ejecutando consulta de usuarios...');
       const { data, error } = await supabase
         .from('usuarios')
         .select(`
@@ -22,14 +23,20 @@ export class UsuariosService {
           Apellidos,
           Email,
           Activo,
-          FechaCreacion
+          FechaCreacion,
+          UserId
         `)
         .order('FechaCreacion', { ascending: false });
+
+      console.log('📊 Respuesta completa de Supabase:', { data, error });
 
       if (error) {
         console.error('❌ Error obteniendo usuarios:', error);
         return { success: false, error: error.message };
       }
+
+      console.log('✅ Usuarios encontrados en BD:', data?.length || 0);
+      console.log('📋 Lista de usuarios:', data);
 
       return { success: true, data: data || [] };
     } catch (error) {
