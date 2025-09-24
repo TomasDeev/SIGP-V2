@@ -72,6 +72,7 @@ const UsersWithSupabase = () => {
     Nombres: "",
     Apellidos: "",
     Email: "",
+    password: "",
     Activo: true,
   });
 
@@ -228,6 +229,7 @@ const UsersWithSupabase = () => {
       Nombres: "",
       Apellidos: "",
       Email: "",
+      password: "",
       Activo: true,
     });
     setSelectedUser(null);
@@ -558,6 +560,19 @@ const UsersWithSupabase = () => {
                 required
               />
             </Grid>
+            {dialogMode === "create" && (
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Contraseña"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => handleFormChange("password", e.target.value)}
+                  required
+                  helperText="Mínimo 6 caracteres"
+                />
+              </Grid>
+            )}
             <Grid item xs={12} md={6}>
               <FormControl fullWidth disabled={dialogMode === "view"}>
                 <InputLabel>Estado</InputLabel>
