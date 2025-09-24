@@ -108,7 +108,7 @@ const BranchesWithSupabase = () => {
   const [emailError, setEmailError] = useState("");
   const [isValidatingEmail, setIsValidatingEmail] = useState(false);
 
-  // Estados del formulario - Todos los campos de la tabla sucursales
+  // Estados del formulario - Campos para las secciones requeridas
   const [formData, setFormData] = useState({
     IdEmpresa: "",
     Nombre: "",
@@ -120,25 +120,8 @@ const BranchesWithSupabase = () => {
     TelefonoGerente: "",
     EmailGerente: "",
     Activo: true,
-    // Información de empresa específica de sucursal
-    RazonSocial: "",
-    NombreComercial: "",
-    RNC: "",
-    Presidente: "",
-    CedulaPresidente: "",
-    // Información legal
-    Abogado: "",
-    EstadoCivilAbogado: 1,
-    CedulaAbogado: "",
-    DireccionAbogado: "",
-    // Testigos
-    PrimerTestigo: "",
-    SegundoTestigo: "",
-    // Alguacil
+    // Alguacil (mantenido para funcionalidad)
     Alguacil: "",
-    // Información bancaria
-    Banco: "",
-    NumeroCuenta: "",
     // Configuración de préstamos
     TipoRecibo: "",
     Tasa: 0,
@@ -951,98 +934,7 @@ const BranchesWithSupabase = () => {
                    </AccordionDetails>
                  </Accordion>
 
-                 {/* Información de Empresa Específica */}
-                 <Accordion
-                   sx={{ 
-                     mb: 1,
-                     '&:before': { display: 'none' },
-                     boxShadow: 'none',
-                     border: '1px solid #e0e0e0'
-                   }}
-                 >
-                   <AccordionSummary
-                     expandIcon={<ExpandMoreIcon />}
-                     sx={{
-                       backgroundColor: '#f5f5f5',
-                       minHeight: 48,
-                       '&.Mui-expanded': { minHeight: 48 },
-                       '& .MuiAccordionSummary-content': {
-                         margin: '8px 0',
-                         '&.Mui-expanded': { margin: '8px 0' }
-                       }
-                     }}
-                   >
-                     <Typography
-                       variant="subtitle2"
-                       sx={{
-                         fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
-                         fontWeight: 600,
-                         color: '#333'
-                       }}
-                     >
-                       Información de Empresa Específica
-                     </Typography>
-                   </AccordionSummary>
-                   <AccordionDetails sx={{ p: 2 }}>
-                     <Grid container spacing={2}>
-                       <Grid item xs={12} md={6}>
-                         <TextField
-                           fullWidth
-                           size="small"
-                           label="Razón Social"
-                           value={formData.RazonSocial || ''}
-                           onChange={(e) => handleFormChange("RazonSocial", e.target.value)}
-                           disabled={dialogMode === "view"}
-                           sx={professionalFieldStyle}
-                         />
-                       </Grid>
-                       <Grid item xs={12} md={6}>
-                         <TextField
-                           fullWidth
-                           size="small"
-                           label="Nombre Comercial"
-                           value={formData.NombreComercial || ''}
-                           onChange={(e) => handleFormChange("NombreComercial", e.target.value)}
-                           disabled={dialogMode === "view"}
-                           sx={professionalFieldStyle}
-                         />
-                       </Grid>
-                       <Grid item xs={12} md={6}>
-                         <TextField
-                           fullWidth
-                           size="small"
-                           label="RNC"
-                           value={formData.RNC || ''}
-                           onChange={(e) => handleFormChange("RNC", e.target.value)}
-                           disabled={dialogMode === "view"}
-                           sx={professionalFieldStyle}
-                         />
-                       </Grid>
-                       <Grid item xs={12} md={6}>
-                         <TextField
-                           fullWidth
-                           size="small"
-                           label="Gerente"
-                           value={formData.Presidente || ''}
-                           onChange={(e) => handleFormChange("Presidente", e.target.value)}
-                           disabled={dialogMode === "view"}
-                           sx={professionalFieldStyle}
-                         />
-                       </Grid>
-                       <Grid item xs={12} md={6}>
-                         <TextField
-                           fullWidth
-                           size="small"
-                           label="Cédula del Gerente"
-                           value={formData.CedulaPresidente || ''}
-                           onChange={(e) => handleFormChange("CedulaPresidente", e.target.value)}
-                           disabled={dialogMode === "view"}
-                           sx={professionalFieldStyle}
-                         />
-                       </Grid>
-                     </Grid>
-                   </AccordionDetails>
-                 </Accordion>
+
 
                  {/* Información del Gerente */}
                  <Accordion
@@ -1140,226 +1032,11 @@ const BranchesWithSupabase = () => {
                    </AccordionDetails>
                  </Accordion>
 
-                 {/* Información Legal */}
-                 <Accordion
-                   sx={{ 
-                     mb: 1,
-                     '&:before': { display: 'none' },
-                     boxShadow: 'none',
-                     border: '1px solid #e0e0e0'
-                   }}
-                 >
-                   <AccordionSummary
-                     expandIcon={<ExpandMoreIcon />}
-                     sx={{
-                       backgroundColor: '#f5f5f5',
-                       minHeight: 48,
-                       '&.Mui-expanded': { minHeight: 48 },
-                       '& .MuiAccordionSummary-content': {
-                         margin: '8px 0',
-                         '&.Mui-expanded': { margin: '8px 0' }
-                       }
-                     }}
-                   >
-                     <Typography
-                       variant="subtitle2"
-                       sx={{
-                         fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
-                         fontWeight: 600,
-                         color: '#333'
-                       }}
-                     >
-                       Información Legal
-                     </Typography>
-                   </AccordionSummary>
-                   <AccordionDetails sx={{ p: 2 }}>
-                     <Grid container spacing={2}>
-                       <Grid item xs={12} md={6}>
-                         <TextField
-                           fullWidth
-                           size="small"
-                           label="Abogado"
-                           value={formData.Abogado || ''}
-                           onChange={(e) => handleFormChange("Abogado", e.target.value)}
-                           disabled={dialogMode === "view"}
-                           sx={professionalFieldStyle}
-                         />
-                       </Grid>
-                       <Grid item xs={12} md={6}>
-                         <TextField
-                           fullWidth
-                           size="small"
-                           label="Cédula del Abogado"
-                           value={formData.CedulaAbogado || ''}
-                           onChange={(e) => handleFormChange("CedulaAbogado", e.target.value)}
-                           disabled={dialogMode === "view"}
-                           sx={professionalFieldStyle}
-                         />
-                       </Grid>
-                       <Grid item xs={12} md={6}>
-                         <FormControl fullWidth size="small" sx={professionalFieldStyle}>
-                           <InputLabel>Estado Civil del Abogado</InputLabel>
-                           <Select
-                             value={formData.EstadoCivilAbogado || 1}
-                             onChange={(e) => handleFormChange("EstadoCivilAbogado", e.target.value)}
-                             disabled={dialogMode === "view"}
-                             label="Estado Civil del Abogado"
-                           >
-                             <MenuItem value={1}>Soltero(a)</MenuItem>
-                             <MenuItem value={2}>Casado(a)</MenuItem>
-                             <MenuItem value={3}>Divorciado(a)</MenuItem>
-                             <MenuItem value={4}>Viudo(a)</MenuItem>
-                             <MenuItem value={5}>Unión Libre</MenuItem>
-                           </Select>
-                         </FormControl>
-                       </Grid>
-                       <Grid item xs={12} md={6}>
-                         <TextField
-                           fullWidth
-                           size="small"
-                           label="Alguacil"
-                           value={formData.Alguacil || ''}
-                           onChange={(e) => handleFormChange("Alguacil", e.target.value)}
-                           disabled={dialogMode === "view"}
-                           sx={professionalFieldStyle}
-                         />
-                       </Grid>
-                       <Grid item xs={12}>
-                         <TextField
-                           fullWidth
-                           size="small"
-                           label="Dirección del Abogado"
-                           value={formData.DireccionAbogado || ''}
-                           onChange={(e) => handleFormChange("DireccionAbogado", e.target.value)}
-                           disabled={dialogMode === "view"}
-                           sx={professionalFieldStyle}
-                           multiline
-                           rows={2}
-                         />
-                       </Grid>
-                     </Grid>
-                   </AccordionDetails>
-                 </Accordion>
 
-                 {/* Testigos */}
-                 <Accordion
-                   sx={{ 
-                     mb: 1,
-                     '&:before': { display: 'none' },
-                     boxShadow: 'none',
-                     border: '1px solid #e0e0e0'
-                   }}
-                 >
-                   <AccordionSummary
-                     expandIcon={<ExpandMoreIcon />}
-                     sx={{
-                       backgroundColor: '#f5f5f5',
-                       minHeight: 48,
-                       '&.Mui-expanded': { minHeight: 48 },
-                       '& .MuiAccordionSummary-content': {
-                         margin: '8px 0',
-                         '&.Mui-expanded': { margin: '8px 0' }
-                       }
-                     }}
-                   >
-                     <Typography
-                       variant="subtitle2"
-                       sx={{
-                         fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
-                         fontWeight: 600,
-                         color: '#333'
-                       }}
-                     >
-                       Testigos
-                     </Typography>
-                   </AccordionSummary>
-                   <AccordionDetails sx={{ p: 2 }}>
-                     <Grid container spacing={2}>
-                       <Grid item xs={12} md={6}>
-                         <TextField
-                           fullWidth
-                           size="small"
-                           label="Primer Testigo"
-                           value={formData.PrimerTestigo || ''}
-                           onChange={(e) => handleFormChange("PrimerTestigo", e.target.value)}
-                           disabled={dialogMode === "view"}
-                           sx={professionalFieldStyle}
-                         />
-                       </Grid>
-                       <Grid item xs={12} md={6}>
-                         <TextField
-                           fullWidth
-                           size="small"
-                           label="Segundo Testigo"
-                           value={formData.SegundoTestigo || ''}
-                           onChange={(e) => handleFormChange("SegundoTestigo", e.target.value)}
-                           disabled={dialogMode === "view"}
-                           sx={professionalFieldStyle}
-                         />
-                       </Grid>
-                     </Grid>
-                   </AccordionDetails>
-                 </Accordion>
 
-                 {/* Información Bancaria */}
-                 <Accordion
-                   sx={{ 
-                     mb: 1,
-                     '&:before': { display: 'none' },
-                     boxShadow: 'none',
-                     border: '1px solid #e0e0e0'
-                   }}
-                 >
-                   <AccordionSummary
-                     expandIcon={<ExpandMoreIcon />}
-                     sx={{
-                       backgroundColor: '#f5f5f5',
-                       minHeight: 48,
-                       '&.Mui-expanded': { minHeight: 48 },
-                       '& .MuiAccordionSummary-content': {
-                         margin: '8px 0',
-                         '&.Mui-expanded': { margin: '8px 0' }
-                       }
-                     }}
-                   >
-                     <Typography
-                       variant="subtitle2"
-                       sx={{
-                         fontFamily: '"Segoe UI", "Roboto", "Arial", sans-serif',
-                         fontWeight: 600,
-                         color: '#333'
-                       }}
-                     >
-                       Información Bancaria
-                     </Typography>
-                   </AccordionSummary>
-                   <AccordionDetails sx={{ p: 2 }}>
-                     <Grid container spacing={2}>
-                       <Grid item xs={12} md={6}>
-                         <TextField
-                           fullWidth
-                           size="small"
-                           label="Banco"
-                           value={formData.Banco || ''}
-                           onChange={(e) => handleFormChange("Banco", e.target.value)}
-                           disabled={dialogMode === "view"}
-                           sx={professionalFieldStyle}
-                         />
-                       </Grid>
-                       <Grid item xs={12} md={6}>
-                         <TextField
-                           fullWidth
-                           size="small"
-                           label="Número de Cuenta"
-                           value={formData.NumeroCuenta || ''}
-                           onChange={(e) => handleFormChange("NumeroCuenta", e.target.value)}
-                           disabled={dialogMode === "view"}
-                           sx={professionalFieldStyle}
-                         />
-                       </Grid>
-                     </Grid>
-                   </AccordionDetails>
-                 </Accordion>
+
+
+
 
                  {/* Configuración de Préstamos */}
                  <Accordion
