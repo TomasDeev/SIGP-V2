@@ -26,6 +26,7 @@ import CalculateIcon from "@mui/icons-material/Calculate";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import PercentIcon from "@mui/icons-material/Percent";
 import DateRangeIcon from "@mui/icons-material/DateRange";
+import CalendarViewMonthIcon from "@mui/icons-material/CalendarViewMonth";
 import SecurityIcon from "@mui/icons-material/Security";
 import GpsFixedIcon from "@mui/icons-material/GpsFixed";
 import CloseIcon from "@mui/icons-material/Close";
@@ -284,375 +285,640 @@ export default function LoanCalculatorPage() {
     <Container
       maxWidth={false}
       sx={{
-        maxWidth: CONTAINER_MAX_WIDTH,
+        maxWidth: "1200px", // Ampliamos significativamente el ancho
         display: "flex",
         minWidth: 0,
         flex: 1,
         flexDirection: "column",
+        px: 2,
+        py: 4,
       }}
       disableGutters
     >
-      <Grid container spacing={2}>
-        <Grid item xs={12}>
-          <JumboCard
-            title={
-              <Box display="flex" alignItems="center" gap={1}>
-                <CalculateIcon color="primary" />
-                <Typography variant="h4" component="h1">
-                  Calculadora de Préstamos con Amortización
-                </Typography>
-              </Box>
-            }
-            contentWrapper={true}
-          >
-            <Typography variant="body1" color="text.secondary" mb={3}>
-              Calcule su tabla de amortización con capital fijo, interés fijo y ajuste automático de decimales
+      {/* Logo SIGP */}
+      <Box display="flex" justifyContent="center" mb={3}>
+        <img src="/SIGP Nuevo logo.png" alt="SIGP" style={{ maxHeight: '60px' }} />
+      </Box>
+
+      {/* Título Principal */}
+      <Typography 
+        variant="h4" 
+        component="h1" 
+        align="center" 
+        sx={{ 
+          mb: 2, 
+          fontWeight: 600,
+          color: 'primary.main'
+        }}
+      >
+        Cuota de préstamo
+      </Typography>
+
+      {/* Descripción */}
+      <Typography 
+        variant="body1" 
+        align="center" 
+        sx={{ 
+          mb: 4, 
+          backgroundColor: 'primary.main',
+          color: 'white',
+          p: 2,
+          borderRadius: 3,
+          maxWidth: '800px', // Ampliamos también la descripción
+          mx: 'auto'
+        }}
+      >
+        Esta calculadora permite establecer el valor que va a tener la cuota de un crédito, tomando el monto a tomar prestado, la tasa de interés y el plazo.
+      </Typography>
+
+      {/* Formulario Principal */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: 4,
+          borderRadius: 4,
+          backgroundColor: 'background.paper',
+          border: '1px solid',
+          borderColor: 'divider',
+          width: '100%' // Ancho completo para coincidir con la tabla de amortización
+        }}
+      >
+        <Grid container spacing={3}>
+          {/* Primera fila - Campos principales */}
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Monto"
+              value={capital}
+              onChange={(e) => setCapital(e.target.value)}
+              type="number"
+              variant="outlined"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 3,
+                  backgroundColor: '#f8f9fa',
+                  border: 'none',
+                  '& fieldset': {
+                    border: 'none',
+                  },
+                  '&:hover fieldset': {
+                    border: 'none',
+                  },
+                  '&.Mui-focused fieldset': {
+                    border: '2px solid',
+                    borderColor: 'primary.main',
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  fontWeight: 500,
+                  color: '#666',
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: 'primary.main',
+                },
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <AttachMoneyIcon sx={{ color: 'primary.main' }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Cuotas"
+              value={plazoMeses}
+              onChange={(e) => setPlazoMeses(e.target.value)}
+              type="number"
+              variant="outlined"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <CalendarViewMonthIcon sx={{ color: 'primary.main' }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 3,
+                  backgroundColor: '#f8f9fa',
+                  border: 'none',
+                  '& fieldset': {
+                    border: 'none',
+                  },
+                  '&:hover fieldset': {
+                    border: 'none',
+                  },
+                  '&.Mui-focused fieldset': {
+                    border: '2px solid',
+                    borderColor: 'primary.main',
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  fontWeight: 500,
+                  color: '#666',
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: 'primary.main',
+                },
+              }}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Interés anual"
+              value={tasaInteresMensual}
+              onChange={(e) => setTasaInteresMensual(e.target.value)}
+              type="number"
+              variant="outlined"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 3,
+                  backgroundColor: '#f8f9fa',
+                  border: 'none',
+                  '& fieldset': {
+                    border: 'none',
+                  },
+                  '&:hover fieldset': {
+                    border: 'none',
+                  },
+                  '&.Mui-focused fieldset': {
+                    border: '2px solid',
+                    borderColor: 'primary.main',
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  fontWeight: 500,
+                  color: '#666',
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: 'primary.main',
+                },
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PercentIcon sx={{ color: 'primary.main' }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          {/* Segunda fila - Campos adicionales */}
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Gasto de Cierre"
+              value={montoCierre}
+              onChange={(e) => setMontoCierre(e.target.value)}
+              type="number"
+              variant="outlined"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 3,
+                  backgroundColor: '#f8f9fa',
+                  border: 'none',
+                  '& fieldset': {
+                    border: 'none',
+                  },
+                  '&:hover fieldset': {
+                    border: 'none',
+                  },
+                  '&.Mui-focused fieldset': {
+                    border: '2px solid',
+                    borderColor: 'primary.main',
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  fontWeight: 500,
+                  color: '#666',
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: 'primary.main',
+                },
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <CloseIcon sx={{ color: 'primary.main' }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Fecha Inicial"
+              value={fechaInicial}
+              onChange={(e) => setFechaInicial(e.target.value)}
+              type="date"
+              variant="outlined"
+              InputLabelProps={{
+                shrink: true,
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <DateRangeIcon sx={{ color: 'primary.main' }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 3,
+                  backgroundColor: '#f8f9fa',
+                  border: 'none',
+                  '& fieldset': {
+                    border: 'none',
+                  },
+                  '&:hover fieldset': {
+                    border: 'none',
+                  },
+                  '&.Mui-focused fieldset': {
+                    border: '2px solid',
+                    borderColor: 'primary.main',
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  fontWeight: 500,
+                  color: '#666',
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: 'primary.main',
+                },
+              }}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Múltiplo de Redondeo"
+              value={roundMultiple}
+              onChange={(e) => setRoundMultiple(e.target.value)}
+              type="number"
+              variant="outlined"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 3,
+                  backgroundColor: '#f8f9fa',
+                  border: 'none',
+                  '& fieldset': {
+                    border: 'none',
+                  },
+                  '&:hover fieldset': {
+                    border: 'none',
+                  },
+                  '&.Mui-focused fieldset': {
+                    border: '2px solid #20b2aa',
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  fontWeight: 500,
+                  color: '#666',
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: '#20b2aa',
+                },
+              }}
+            />
+          </Grid>
+
+          {/* Sección de Seguro y GPS */}
+          <Grid item xs={12}>
+            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
+              Opciones adicionales
             </Typography>
-          </JumboCard>
-        </Grid>
+          </Grid>
 
+          {/* Sección de Seguro */}
+          <Grid item xs={12} md={6}>
+            <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 3, p: 3, backgroundColor: '#fafafa' }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={tieneSeguro}
+                    onChange={(e) => setTieneSeguro(e.target.checked)}
+                    sx={{ color: 'primary.main', '&.Mui-checked': { color: 'primary.main' } }}
+                  />
+                }
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <SecurityIcon sx={{ color: 'primary.main' }} />
+                    <Typography>Incluir Seguro</Typography>
+                  </Box>
+                }
+                sx={{ mb: 2 }}
+              />
+
+              {tieneSeguro && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <TextField
+                    fullWidth
+                    label="Monto Total del Seguro"
+                    value={montoTotalSeguro}
+                    onChange={(e) => setMontoTotalSeguro(e.target.value)}
+                    type="number"
+                    variant="outlined"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        backgroundColor: '#f8f9fa',
+                      },
+                    }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SecurityIcon sx={{ color: '#20b2aa' }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                  <TextField
+                    fullWidth
+                    label="Cuotas del Seguro"
+                    value={cuotasSeguro}
+                    onChange={(e) => setCuotasSeguro(e.target.value)}
+                    type="number"
+                    variant="outlined"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        backgroundColor: '#f8f9fa',
+                      },
+                    }}
+                  />
+                  <Typography variant="body2" color="text.secondary">
+                    Seguro mensual: {formatCurrency(parseFloat(seguroMensual) || 0)}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </Grid>
+
+          {/* Sección de GPS */}
+          <Grid item xs={12} md={6}>
+            <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 3, p: 3, backgroundColor: '#fafafa' }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={tieneGPS}
+                    onChange={(e) => setTieneGPS(e.target.checked)}
+                    sx={{ color: 'primary.main', '&.Mui-checked': { color: 'primary.main' } }}
+                  />
+                }
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <GpsFixedIcon sx={{ color: 'primary.main' }} />
+                    <Typography>Incluir GPS</Typography>
+                  </Box>
+                }
+                sx={{ mb: 2 }}
+              />
+
+              {tieneGPS && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <TextField
+                    fullWidth
+                    label="Monto Total del GPS"
+                    value={montoTotalGPS}
+                    onChange={(e) => setMontoTotalGPS(e.target.value)}
+                    type="number"
+                    variant="outlined"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        backgroundColor: '#f8f9fa',
+                      },
+                    }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <GpsFixedIcon sx={{ color: '#20b2aa' }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                  <TextField
+                    fullWidth
+                    label="Cuotas del GPS"
+                    value={cuotasGPS}
+                    onChange={(e) => setCuotasGPS(e.target.value)}
+                    type="number"
+                    variant="outlined"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        backgroundColor: '#f8f9fa',
+                      },
+                    }}
+                  />
+                  <Typography variant="body2" color="text.secondary">
+                    GPS mensual: {formatCurrency(parseFloat(gpsMensual) || 0)}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </Grid>
+
+          {/* Botón Calcular */}
+          <Grid item xs={12}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              <Button
+                variant="contained"
+                onClick={calculateLoan}
+                startIcon={<CalculateIcon />}
+                sx={{
+                  py: 1.5,
+                  px: 4,
+                  borderRadius: 25,
+                  backgroundColor: 'primary.main',
+                  fontSize: '1.1rem',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  minWidth: '200px',
+                  '&:hover': {
+                    backgroundColor: 'primary.dark',
+                  },
+                  '&:active': {
+                    backgroundColor: 'primary.dark',
+                  },
+                }}
+              >
+                Calcular Amortización
+              </Button>
+            </Box>
+          </Grid>
+
+          {/* Botones adicionales */}
+          <Grid item xs={12}>
+            <Box sx={{ display: "flex", gap: 2, justifyContent: "center", flexWrap: "wrap", mt: 2 }}>
+              <Button
+                variant="contained"
+                color="success"
+                onClick={handleFillLoanApplication}
+                startIcon={<AssignmentIcon />}
+                disabled={!capital || !plazoMeses}
+                sx={{ 
+                  borderRadius: 20,
+                  textTransform: 'none',
+                  fontSize: '0.9rem',
+                  px: 3
+                }}
+              >
+                Llenar Préstamo
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={resetCalculator}
+                sx={{ 
+                  borderRadius: 20,
+                  textTransform: 'none',
+                  fontSize: '0.9rem',
+                  px: 3,
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  '&:hover': {
+                    borderColor: 'primary.dark',
+                    backgroundColor: 'primary.light',
+                  }
+                }}
+              >
+                Limpiar
+              </Button>
+            </Box>
+          </Grid>
+
+          {/* Error */}
+          {error && (
+            <Grid item xs={12}>
+              <Alert severity="error" sx={{ borderRadius: 2 }}>
+                {error}
+              </Alert>
+            </Grid>
+          )}
+        </Grid>
+      </Paper>
+
+      {/* Espaciado adicional entre secciones */}
+      <Box sx={{ height: 32 }} />
+
+      {/* Tabla de Amortización - Solo se muestra si hay datos calculados */}
+      {amortizationTable && amortizationTable.length > 0 && (
         <Grid item xs={12}>
           <JumboCard
-            title="Información del Préstamo"
+            title="Tabla de Amortización"
             contentWrapper={true}
           >
-            <Box component="form" noValidate autoComplete="off">
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Capital del Préstamo"
-                    value={capital}
-                    onChange={(e) => setCapital(e.target.value)}
-                    type="number"
-                    margin="normal"
-                    required
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <AttachMoneyIcon />
-                        </InputAdornment>
-                      ),
-                    }}
-                    helperText="Ejemplo: 250,000"
-                  />
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Gasto de Cierre"
-                    value={montoCierre}
-                    onChange={(e) => setMontoCierre(e.target.value)}
-                    type="number"
-                    margin="normal"
-                    required
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <CloseIcon />
-                        </InputAdornment>
-                      ),
-                    }}
-                    helperText="Se calcula automáticamente como 10% del capital"
-                  />
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Plazo en Meses"
-                    value={plazoMeses}
-                    onChange={(e) => setPlazoMeses(e.target.value)}
-                    type="number"
-                    margin="normal"
-                    required
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <DateRangeIcon />
-                        </InputAdornment>
-                      ),
-                    }}
-                    helperText="Ejemplo: 36"
-                  />
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Tasa de Interés Mensual (%)"
-                    value={tasaInteresMensual}
-                    onChange={(e) => setTasaInteresMensual(e.target.value)}
-                    type="number"
-                    margin="normal"
-                    required
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <PercentIcon />
-                        </InputAdornment>
-                      ),
-                    }}
-                    helperText="Ejemplo: 2.2 (mensual, no anual)"
-                  />
-                </Grid>
-
-
-
-                {/* Sección de Seguro */}
-                <Grid item xs={12}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={tieneSeguro}
-                        onChange={(e) => setTieneSeguro(e.target.checked)}
-                        color="primary"
-                      />
-                    }
-                    label="¿Tiene seguro?"
-                  />
-                </Grid>
-
-                {tieneSeguro && (
-                  <>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Monto Total del Seguro"
-                        value={montoTotalSeguro}
-                        onChange={(e) => setMontoTotalSeguro(e.target.value)}
-                        type="number"
-                        margin="normal"
-                        required
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <SecurityIcon />
-                            </InputAdornment>
-                          ),
-                        }}
-                        helperText="Monto total del seguro a pagar"
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Cuotas del Seguro"
-                        value={cuotasSeguro}
-                        onChange={(e) => setCuotasSeguro(e.target.value)}
-                        type="number"
-                        margin="normal"
-                        required
-                        helperText="En cuántas cuotas se dividirá el seguro"
-                      />
-                    </Grid>
-                  </>
-                )}
-
-                {/* Sección de GPS */}
-                <Grid item xs={12}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={tieneGPS}
-                        onChange={(e) => setTieneGPS(e.target.checked)}
-                        color="primary"
-                      />
-                    }
-                    label="¿Tiene GPS?"
-                  />
-                </Grid>
-
-                {tieneGPS && (
-                  <>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Monto Total del GPS"
-                        value={montoTotalGPS}
-                        onChange={(e) => setMontoTotalGPS(e.target.value)}
-                        type="number"
-                        margin="normal"
-                        required
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <GpsFixedIcon />
-                            </InputAdornment>
-                          ),
-                        }}
-                        helperText="Monto total del GPS a pagar"
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Cuotas del GPS"
-                        value={cuotasGPS}
-                        onChange={(e) => setCuotasGPS(e.target.value)}
-                        type="number"
-                        margin="normal"
-                        required
-                        helperText="En cuántas cuotas se dividirá el GPS"
-                      />
-                    </Grid>
-                  </>
-                )}
-
-                {/* Campos ocultos - fecha inicial y redondeo se mantienen en el estado pero no se muestran */}
-
-                <Grid item xs={12}>
-                  {error && (
-                    <Alert severity="error" sx={{ mt: 2 }}>
-                      {error}
-                    </Alert>
-                  )}
-
-                  <Box sx={{ mt: 3, display: "flex", gap: 2, justifyContent: "center", flexWrap: "wrap" }}>
-                    <Button
-                      variant="contained"
-                      onClick={calculateLoan}
-                      startIcon={<CalculateIcon />}
-                      sx={{ minWidth: 200 }}
-                    >
-                      Calcular Amortización
-                    </Button>
-                    <Button
-                      variant="contained"
-                      color="success"
-                      onClick={handleFillLoanApplication}
-                      startIcon={<AssignmentIcon />}
-                      sx={{ minWidth: 200 }}
-                      disabled={!capital || !plazoMeses}
-                    >
-                      Llenar Préstamo
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      onClick={resetCalculator}
-                      sx={{ minWidth: 200 }}
-                    >
-                      Limpiar
-                    </Button>
-                  </Box>
-                </Grid>
-              </Grid>
-            </Box>
+            <TableContainer component={Paper} sx={{ maxHeight: 600 }}>
+              <Table stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell><strong>Cuota</strong></TableCell>
+                    <TableCell><strong>Fecha Vencimiento</strong></TableCell>
+                    <TableCell align="right"><strong>Cuota Total</strong></TableCell>
+                    <TableCell align="right"><strong>Cierre</strong></TableCell>
+                    <TableCell align="right"><strong>Seguro</strong></TableCell>
+                    <TableCell align="right"><strong>GPS</strong></TableCell>
+                    <TableCell align="right"><strong>Capital</strong></TableCell>
+                    <TableCell align="right"><strong>Interés</strong></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {amortizationTable.map((row) => (
+                    <TableRow key={row.numeroCuota}>
+                      <TableCell>{row.numeroCuota}</TableCell>
+                      <TableCell>{row.fechaVencimiento}</TableCell>
+                      <TableCell align="right">{formatCurrency(row.cuotaTotal)}</TableCell>
+                      <TableCell align="right">{formatNumber(row.cierre)}</TableCell>
+                      <TableCell align="right">{formatNumber(row.seguro)}</TableCell>
+                      <TableCell align="right">{formatNumber(row.gps)}</TableCell>
+                      <TableCell align="right">{formatNumber(row.capital)}</TableCell>
+                      <TableCell align="right">{formatNumber(row.interes)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </JumboCard>
         </Grid>
+      )}
 
-        {amortizationTable.length > 0 && (
-          <>
-            <Grid item xs={12}>
-              <JumboCard
-                title="Tabla de Amortización"
-                contentWrapper={true}
-              >
-                <TableContainer component={Paper} sx={{ maxHeight: 600 }}>
-                  <Table stickyHeader>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell><strong>Cuota</strong></TableCell>
-                        <TableCell><strong>Fecha Vencimiento</strong></TableCell>
-                        <TableCell align="right"><strong>Cuota Total</strong></TableCell>
-                        <TableCell align="right"><strong>Cierre</strong></TableCell>
-                        <TableCell align="right"><strong>Seguro</strong></TableCell>
-                        <TableCell align="right"><strong>GPS</strong></TableCell>
-                        <TableCell align="right"><strong>Capital</strong></TableCell>
-                        <TableCell align="right"><strong>Interés</strong></TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {amortizationTable.map((row) => (
-                        <TableRow key={row.numeroCuota}>
-                          <TableCell>{row.numeroCuota}</TableCell>
-                          <TableCell>{row.fechaVencimiento}</TableCell>
-                          <TableCell align="right">{formatCurrency(row.cuotaTotal)}</TableCell>
-                          <TableCell align="right">{formatNumber(row.cierre)}</TableCell>
-                          <TableCell align="right">{formatNumber(row.seguro)}</TableCell>
-                          <TableCell align="right">{formatNumber(row.gps)}</TableCell>
-                          <TableCell align="right">{formatNumber(row.capital)}</TableCell>
-                          <TableCell align="right">{formatNumber(row.interes)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </JumboCard>
-            </Grid>
+      {/* Espaciado adicional entre secciones */}
+      {amortizationTable && amortizationTable.length > 0 && <Box sx={{ height: 32 }} />}
 
-            <Grid item xs={12}>
-              <JumboCard
-                title="Resumen del Cálculo"
-                contentWrapper={true}
-              >
-                {summary ? (
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={4}>
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="body1" color="text.secondary">
-                          Capital por Cuota
-                        </Typography>
-                        <Typography variant="h6" fontWeight="medium">
-                          {formatNumber(summary.capitalPorCuota)}
-                        </Typography>
-                      </Box>
-
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="body1" color="text.secondary">
-                          Interés por Cuota
-                        </Typography>
-                        <Typography variant="h6" fontWeight="medium">
-                          {formatNumber(summary.interesPorCuota)}
-                        </Typography>
-                      </Box>
-
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="body1" color="text.secondary">
-                          Cierre por Cuota
-                        </Typography>
-                        <Typography variant="h6" fontWeight="medium">
-                          {formatNumber(summary.cierrePorCuota)}
-                        </Typography>
-                      </Box>
-                    </Grid>
-
-                    <Grid item xs={12} md={4}>
-                      <Box sx={{ mb: 3, textAlign: 'center' }}>
-                        <Typography variant="h6" color="primary" gutterBottom>
-                          Total Pagado
-                        </Typography>
-                        <Typography variant="h4" fontWeight="bold">
-                          {formatCurrency(summary.totalCuotas)}
-                        </Typography>
-                      </Box>
-                    </Grid>
-
-                    <Grid item xs={12} md={4}>
-                      <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          <strong>Total Capital:</strong> {formatCurrency(summary.totalCapital)}<br/>
-                          <strong>Total Interés:</strong> {formatCurrency(summary.totalInteres)}<br/>
-                          <strong>Total Cierre:</strong> {formatCurrency(summary.totalCierre)}<br/>
-                          <strong>Total Seguro:</strong> {formatCurrency(summary.totalSeguro)}<br/>
-                          <strong>Total GPS:</strong> {formatCurrency(summary.totalGPS)}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  </Grid>
-                ) : (
-                  <Typography variant="body1" color="text.secondary" textAlign="center" py={4}>
-                    Complete los campos y haga clic en "Calcular Amortización" para ver el resumen
+      {/* Resumen del Cálculo - Solo se muestra si hay datos calculados */}
+      {summary && (
+        <Grid item xs={12}>
+          <JumboCard
+            title="Resumen del Cálculo"
+            contentWrapper={true}
+          >
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={4}>
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    Capital por Cuota
                   </Typography>
-                )}
-              </JumboCard>
+                  <Typography variant="h6" fontWeight="medium">
+                    {formatNumber(summary.capitalPorCuota)}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    Interés por Cuota
+                  </Typography>
+                  <Typography variant="h6" fontWeight="medium">
+                    {formatNumber(summary.interesPorCuota)}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    Cierre por Cuota
+                  </Typography>
+                  <Typography variant="h6" fontWeight="medium">
+                    {formatNumber(summary.cierrePorCuota)}
+                  </Typography>
+                </Box>
+              </Grid>
+
+              <Grid item xs={12} md={4}>
+                <Box sx={{ mb: 3, textAlign: 'center' }}>
+                  <Typography variant="h6" color="primary" gutterBottom>
+                    Total Pagado
+                  </Typography>
+                  <Typography variant="h4" fontWeight="bold">
+                    {formatCurrency(summary.totalCuotas)}
+                  </Typography>
+                </Box>
+              </Grid>
+
+              <Grid item xs={12} md={4}>
+                <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Total Capital:</strong> {formatCurrency(summary.totalCapital)}<br/>
+                    <strong>Total Interés:</strong> {formatCurrency(summary.totalInteres)}<br/>
+                    <strong>Total Cierre:</strong> {formatCurrency(summary.totalCierre)}<br/>
+                    <strong>Total Seguro:</strong> {formatCurrency(summary.totalSeguro)}<br/>
+                    <strong>Total GPS:</strong> {formatCurrency(summary.totalGPS)}
+                  </Typography>
+                </Box>
+              </Grid>
             </Grid>
-          </>
-        )}
-      </Grid>
+          </JumboCard>
+        </Grid>
+      )}
     </Container>
   );
 }
