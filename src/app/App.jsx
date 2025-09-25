@@ -14,28 +14,33 @@ import { CONFIG } from "./_config";
 import { router } from "./_routes";
 import { Spinner } from "./_shared/Spinner";
 import { SupabaseProvider } from "./_shared/contexts/SupabaseContext";
+import DebugInfo from "./_components/DebugInfo";
+import ErrorBoundary from "./_components/ErrorBoundary";
 
 function App() {
   return (
-    <SupabaseProvider>
-      <AuthProvider>
-        <AppProvider>
-          <JumboTheme init={CONFIG.THEME}>
-            <CssBaseline />
-            <Suspense fallback={<Spinner />}>
-              <JumboRTL>
-                <JumboDialogProvider>
-                  <JumboDialog />
-                  <AppSnackbar>
-                    <RouterProvider router={router} />
-                  </AppSnackbar>
-                </JumboDialogProvider>
-              </JumboRTL>
-            </Suspense>
-          </JumboTheme>
-        </AppProvider>
-      </AuthProvider>
-    </SupabaseProvider>
+    <ErrorBoundary>
+      <SupabaseProvider>
+        <AuthProvider>
+          <AppProvider>
+            <JumboTheme init={CONFIG.THEME}>
+              <CssBaseline />
+              <DebugInfo />
+              <Suspense fallback={<Spinner />}>
+                <JumboRTL>
+                  <JumboDialogProvider>
+                    <JumboDialog />
+                    <AppSnackbar>
+                      <RouterProvider router={router} />
+                    </AppSnackbar>
+                  </JumboDialogProvider>
+                </JumboRTL>
+              </Suspense>
+            </JumboTheme>
+          </AppProvider>
+        </AuthProvider>
+      </SupabaseProvider>
+    </ErrorBoundary>
   );
 }
 
