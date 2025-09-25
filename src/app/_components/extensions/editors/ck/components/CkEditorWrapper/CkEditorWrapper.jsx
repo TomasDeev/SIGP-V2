@@ -1,4 +1,4 @@
-import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+import { ClassicEditor } from 'ckeditor5';
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 
 const editorContent =
