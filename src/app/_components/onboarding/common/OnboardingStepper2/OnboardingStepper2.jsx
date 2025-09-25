@@ -1,7 +1,9 @@
 import { useOnboarding } from "@app/_components/onboarding/hooks";
+import { useOnboardingData } from "@app/_components/onboarding/onboarding-2/context/OnboardingDataContext";
 import { Div } from "@jumbo/shared";
-import { Typography, Box, Chip, useTheme } from "@mui/material";
+import { Typography, Box, Chip, useTheme, Alert } from "@mui/material";
 import { deepOrange } from "@mui/material/colors";
+import { Edit } from "@mui/icons-material";
 
 const stepNames = [
   "Cálculo",
@@ -18,6 +20,7 @@ const stepNames = [
 
 const OnboardingStepper2 = () => {
   const { steps, activeIndex, goToStep } = useOnboarding();
+  const { isEditing } = useOnboardingData();
   const theme = useTheme();
 
   const handleStepClick = (stepIndex) => {
@@ -28,6 +31,17 @@ const OnboardingStepper2 = () => {
 
   return (
     <Div sx={{ mb: 4 }}>
+      {/* Alerta de modo edición */}
+      {isEditing && (
+        <Alert 
+          severity="info" 
+          icon={<Edit />}
+          sx={{ mb: 2 }}
+        >
+          Editando datos del cliente existente
+        </Alert>
+      )}
+      
       {/* Step Progress Header */}
       <Typography 
         variant="h6" 

@@ -56,28 +56,50 @@ import {
 } from "@mui/icons-material";
 import { JumboCard } from "@jumbo/components";
 import { PrestamosService } from "../../../_services/prestamosService";
+import CuentasService from '../../../_services/cuentasService';
+import ReferenciasPersonalesService from '../../../_services/referenciasPersonalesService';
+import LocalizacionesService from '../../../_services/localizacionesService';
 
 
 
 
 // Función para transformar datos de la base de datos al formato esperado por la UI
 const transformLoanData = (loans) => {
-  return loans.map(loan => ({
-    id: `${loan.Prefijo || ''}${loan.PrestamoNo || loan.IdPrestamo?.toString() || ''}`,
-    fecha: loan.FechaCreacion ? new Date(loan.FechaCreacion).toLocaleDateString('es-DO', { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric' 
-    }) : '',
-    cliente: `${loan.Cuentas?.Nombres || ''} ${loan.Cuentas?.Apellidos || ''}`.trim(),
-    cedula: loan.Cuentas?.Cedula || '',
-    telefono: loan.Cuentas?.Telefono || loan.Cuentas?.Celular || '',
-    monto: loan.CapitalPrestado || 0,
-    garantia: loan.Garantias?.[0]?.Descripcion || 'PRESTAMO CON PAGARE NOTARIAL',
-    proveedor: loan.Empresas?.NombreComercial || 'NINGUNO',
-    localizacion: loan.Cuentas?.Sector || '',
-    estado: getEstadoName(loan.IdEstado)
-  }));
+  return loans.map(loan => {
+    // Asegurar que tenemos datos del cliente
+    const clientData = loan.cuentas || {};
+    const cedula = clientData.Cedula || '';
+    const nombres = clientData.Nombres || '';
+    const apellidos = clientData.Apellidos || '';
+    
+    // Log para debugging si no hay cédula
+    if (!cedula) {
+      console.warn('Préstamo sin cédula de cliente:', {
+        prestamoId: loan.IdPrestamo,
+        cliente: `${nombres} ${apellidos}`.trim(),
+        clientData: clientData
+      });
+    }
+    
+    return {
+      id: `${loan.Prefijo || ''}${loan.PrestamoNo || loan.IdPrestamo?.toString() || ''}`,
+      fecha: loan.FechaCreacion ? new Date(loan.FechaCreacion).toLocaleDateString('es-DO', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric' 
+      }) : '',
+      cliente: `${nombres} ${apellidos}`.trim() || 'Cliente sin nombre',
+      cedula: cedula,
+      telefono: clientData.Telefono || clientData.Celular || '',
+      monto: loan.CapitalPrestado || 0,
+      garantia: loan.garantias?.[0]?.Descripcion || 'PRESTAMO CON PAGARE NOTARIAL',
+      proveedor: loan.empresas?.NombreComercial || 'NINGUNO',
+      localizacion: clientData.Sector || '',
+      estado: getEstadoName(loan.IdEstado),
+      // Agregar datos adicionales para debugging
+      _originalLoanData: loan
+    };
+  });
 };
 
 // Función para convertir ID de estado a nombre
@@ -150,6 +172,9 @@ export default function CreditApplicationPage() {
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [selectedBranch, setSelectedBranch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [printDialogOpen, setPrintDialogOpen] = useState(false);
+  const [selectedDocuments, setSelectedDocuments] = useState([]);
+  const [clientForPrint, setClientForPrint] = useState(null); // Preservar datos del cliente para impresión
   const [formData, setFormData] = useState({
     cliente: "",
     cedula: "",
@@ -164,6 +189,14 @@ export default function CreditApplicationPage() {
 
   // Estado para almacenar datos de la calculadora de préstamos
   const [loanCalculationData, setLoanCalculationData] = useState(null);
+
+  // Opciones de documentos para imprimir
+  const documentOptions = [
+    { id: 'hoja-vida', name: 'Hoja de Vida', description: 'Documento con información personal y financiera del cliente' },
+    { id: 'contrato', name: 'Contrato de Préstamo', description: 'Contrato oficial del préstamo' },
+    { id: 'pagare', name: 'Pagaré', description: 'Documento de compromiso de pago' },
+    { id: 'tabla-amortizacion', name: 'Tabla de Amortización', description: 'Cronograma de pagos del préstamo' },
+  ];
 
   // Función para cargar préstamos desde la base de datos
   const loadLoans = async () => {
@@ -254,10 +287,167 @@ export default function CreditApplicationPage() {
     setSelectedRow(null);
   };
 
-  const handleMenuOption = (option) => {
+  const handleMenuOption = async (option) => {
     console.log(`Opción seleccionada: ${option} para solicitud: ${selectedRow?.id} - Cliente: ${selectedRow?.cliente}`);
     
+    if (option === 'imprimir') {
+      // Preservar los datos del cliente antes de cerrar el menú
+      setClientForPrint(selectedRow);
+      setPrintDialogOpen(true);
+    } else if (option === 'editar') {
+      await handleEditClient();
+    }
+    
     handleMenuClose();
+  };
+
+  const handleEditClient = async () => {
+    try {
+      if (!selectedRow?.cedula) {
+        console.error('No se encontró la cédula del cliente seleccionado');
+        alert('No se encontró la cédula del cliente seleccionado');
+        return;
+      }
+
+      console.log('Buscando cliente con cédula:', selectedRow.cedula);
+
+      // Obtener datos completos del cliente por cédula
+      const clientResult = await CuentasService.getByCedula(selectedRow.cedula);
+      
+      if (!clientResult.success) {
+        console.error('Error obteniendo datos del cliente:', clientResult.error);
+        alert(`Error obteniendo datos del cliente: ${clientResult.error}`);
+        return;
+      }
+
+      if (!clientResult.data) {
+        console.error('No se encontró el cliente con la cédula:', selectedRow.cedula);
+        alert(`No se encontró el cliente con la cédula: ${selectedRow.cedula}`);
+        return;
+      }
+
+      const clientData = clientResult.data;
+      
+      // TODO: Obtener datos relacionados de otras tablas (localizaciones, referencias, etc.)
+      // Por ahora mapearemos solo los datos básicos disponibles en la tabla cuentas
+      
+      // Mapear datos del cliente al formato del onboarding
+      const onboardingData = {
+        datosPersonales: {
+          nombres: clientData.Nombres || '',
+          apellidos: clientData.Apellidos || '',
+          cedula: clientData.Cedula || '',
+          telefono: clientData.Telefono || '',
+          celular: clientData.Celular || '',
+          email: clientData.Email || '',
+          nacionalidad: clientData.Nacionalidad || 'Dominicana',
+          lugarNacimiento: clientData.LugarNacimiento || '',
+          fechaNacimiento: clientData.FechaNacimiento || '',
+          estadoCivil: mapEstadoCivilFromDB(clientData.EstadoCivil),
+          profesion: clientData.Profesion || '',
+          foto: clientData.Foto || null,
+          fotoPreview: clientData.Foto || null,
+          // Campos adicionales que pueden estar en observaciones
+          apodo: extractFromObservaciones(clientData.Observaciones, 'Apodo') || '',
+          sexo: 'masculino', // Por defecto, se puede mejorar
+          ocupacion: clientData.Profesion || '',
+          tipoResidencia: extractFromObservaciones(clientData.Observaciones, 'Tipo de residencia') || 'propia'
+        },
+        direccion: {
+          direccion: clientData.Direccion || '',
+          sector: clientData.Sector || '',
+          // Campos adicionales que se pueden agregar
+          provincia: '',
+          municipio: '',
+          calle: '',
+          numero: '',
+          referencia: '',
+          latitud: null,
+          longitud: null
+        },
+        informacionLaboral: {
+          empresa: clientData.LugarTrabajo || '',
+          direccionEmpresa: clientData.DireccionTrabajo || '',
+          telefonoTrabajo: clientData.TelefonoTrabajo || '',
+          ingresos: clientData.Ingresos || 0,
+          tiempoTrabajo: clientData.TiempoTrabajo || '',
+          // Campos adicionales
+          cargo: '',
+          supervisor: '',
+          quienPagara: 'cliente'
+        },
+        // Secciones que se inicializarán vacías por ahora
+        datosConyuge: {
+          nombres: '',
+          apellidos: '',
+          cedula: '',
+          fechaNacimiento: '',
+          sexo: 'femenino',
+          telefono: '',
+          celular: '',
+          lugarTrabajo: '',
+          direccionTrabajo: ''
+        },
+        referenciasPersonales: [],
+        fiadores: [],
+        seguros: {
+          gps: false,
+          vida: false,
+          vehicular: false,
+          montoGps: 0,
+          montoVida: 0,
+          montoVehicular: 0
+        },
+        cheques: {
+          tipoPrestamo: 'personal',
+          concepto: '',
+          banco: '',
+          numeroCuenta: '',
+          nombreCuenta: '',
+          tipoCuenta: 'corriente'
+        },
+        loanCalculation: {
+          capital: 0,
+          cantidadCuotas: 12,
+          tasaInteres: 18,
+          gastoCierre: 0,
+          montoSeguro: 0,
+          fechaPrimerPago: new Date().toISOString().split('T')[0]
+        },
+        isEditing: true,
+        clientId: clientData.IdCliente
+      };
+
+      // Guardar datos en localStorage para el onboarding
+      localStorage.setItem('onboardingEditData', JSON.stringify(onboardingData));
+      localStorage.setItem('onboardingEditMode', 'true');
+      
+      // Navegar al onboarding-2
+      navigate('/onboarding-2');
+      
+    } catch (error) {
+      console.error('Error al preparar edición del cliente:', error);
+    }
+  };
+
+  // Función helper para extraer información de las observaciones
+  const extractFromObservaciones = (observaciones, campo) => {
+    if (!observaciones) return '';
+    const regex = new RegExp(`${campo}:\\s*([^.]+)`, 'i');
+    const match = observaciones.match(regex);
+    return match ? match[1].trim() : '';
+  };
+
+  // Función helper para mapear estado civil desde la DB
+  const mapEstadoCivilFromDB = (estadoCivilId) => {
+    const estadosMap = {
+      1: 'soltero',
+      2: 'casado',
+      3: 'divorciado',
+      4: 'viudo',
+      5: 'union_libre'
+    };
+    return estadosMap[estadoCivilId] || 'soltero';
   };
 
   const handleChangePage = (event, newPage) => {
@@ -297,6 +487,291 @@ export default function CreditApplicationPage() {
 
     setApplications([newApplication, ...applications]);
     handleCloseDialog();
+  };
+
+  const handlePrintDialogClose = () => {
+    setPrintDialogOpen(false);
+    setSelectedDocuments([]);
+    setClientForPrint(null); // Limpiar datos del cliente preservado
+  };
+
+  const handleDocumentToggle = (documentId) => {
+    setSelectedDocuments(prev => 
+      prev.includes(documentId) 
+        ? prev.filter(id => id !== documentId)
+        : [...prev, documentId]
+    );
+  };
+
+  const handlePrintDocuments = () => {
+    if (selectedDocuments.length === 0) {
+      alert('Por favor seleccione al menos un documento para imprimir.');
+      return;
+    }
+
+    // Aquí implementaremos la lógica de impresión para cada documento
+    selectedDocuments.forEach(docId => {
+      switch (docId) {
+        case 'hoja-vida':
+          printHojaDeVida();
+          break;
+        case 'contrato':
+          printContrato();
+          break;
+        case 'pagare':
+          printPagare();
+          break;
+        case 'tabla-amortizacion':
+          printTablaAmortizacion();
+          break;
+        default:
+          console.log(`Documento ${docId} no implementado`);
+      }
+    });
+
+    handlePrintDialogClose();
+  };
+
+  const printHojaDeVida = async () => {
+    try {
+      // Validar que hay un cliente para imprimir
+      if (!clientForPrint) {
+        alert('Por favor seleccione un cliente de la lista');
+        return;
+      }
+
+      // Validar que la cédula está disponible
+      if (!clientForPrint.cedula || clientForPrint.cedula.trim() === '') {
+        alert('No se encontró la cédula del cliente seleccionado. Verifique que el cliente tenga una cédula registrada.');
+        console.error('Datos del cliente seleccionado:', clientForPrint);
+        return;
+      }
+
+      // Mostrar loading
+      console.log('Obteniendo datos completos del cliente para la hoja de vida...');
+      console.log('Cédula del cliente:', clientForPrint.cedula);
+
+      // Obtener datos completos del cliente
+      const clientResult = await CuentasService.getByCedula(clientForPrint.cedula);
+      if (!clientResult.success || !clientResult.data) {
+        alert(`Error obteniendo datos del cliente con cédula: ${clientForPrint.cedula}. Verifique que el cliente existe en la base de datos.`);
+        console.error('Error en CuentasService.getByCedula:', clientResult);
+        return;
+      }
+
+      const clientData = clientResult.data;
+      console.log('Datos del cliente obtenidos:', clientData);
+
+      // Obtener referencias personales
+      const referenciasResult = await ReferenciasPersonalesService.getByClientId(clientData.IdCliente);
+      const referencias = referenciasResult.success ? referenciasResult.data : [];
+      console.log('Referencias personales obtenidas:', referencias);
+
+      // Obtener localizaciones
+      const localizacionesResult = await LocalizacionesService.getByClientId(clientData.IdCliente);
+      const localizaciones = localizacionesResult.success ? localizacionesResult.data : [];
+      console.log('Localizaciones obtenidas:', localizaciones);
+
+      // Crear una nueva ventana para la Hoja de Vida
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
+      
+      if (printWindow) {
+        // Generar el HTML usando el componente HojaDeVidaPDF
+        const hojaDeVidaHTML = generateHojaDeVidaHTML(clientData, referencias, localizaciones);
+        
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Hoja de Vida - ${clientData.Nombres} ${clientData.Apellidos}</title>
+            <meta charset="UTF-8">
+            <style>
+              @media print { 
+                body { margin: 0; }
+                @page { margin: 15mm; }
+              }
+            </style>
+          </head>
+          <body>
+            ${hojaDeVidaHTML}
+          </body>
+          </html>
+        `);
+        
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+      } else {
+        alert('No se pudo abrir la ventana de impresión. Verifique que no esté bloqueada por el navegador.');
+      }
+    } catch (error) {
+      console.error('Error generando hoja de vida:', error);
+      alert(`Error generando la hoja de vida: ${error.message}`);
+    }
+  };
+
+  const printContrato = () => {
+    console.log('Imprimiendo Contrato de Préstamo para:', selectedRow?.cliente);
+    // Implementar lógica de impresión del contrato
+  };
+
+  const printPagare = () => {
+    console.log('Imprimiendo Pagaré para:', selectedRow?.cliente);
+    // Implementar lógica de impresión del pagaré
+  };
+
+  const printTablaAmortizacion = () => {
+    console.log('Imprimiendo Tabla de Amortización para:', selectedRow?.cliente);
+    // Implementar lógica de impresión de la tabla de amortización
+  };
+
+  // Función para generar HTML de la Hoja de Vida
+  const generateHojaDeVidaHTML = (clientData, referencias, localizaciones) => {
+    const formatDate = (dateString) => {
+      if (!dateString) return 'N/A';
+      try {
+        return new Date(dateString).toLocaleDateString('es-DO', {
+          day: '2-digit',
+          month: '2-digit', 
+          year: 'numeric'
+        });
+      } catch {
+        return 'N/A';
+      }
+    };
+
+    const formatCurrency = (amount) => {
+      if (!amount) return 'RD$ 0';
+      return new Intl.NumberFormat('es-DO', {
+        style: 'currency',
+        currency: 'DOP',
+        minimumFractionDigits: 0
+      }).format(amount);
+    };
+
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.4;">
+        <!-- Header -->
+        <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #2c3e50; padding-bottom: 20px;">
+          <h1 style="color: #2c3e50; margin: 0; font-size: 28px; font-weight: bold;">HOJA DE VIDA</h1>
+          <h2 style="color: #34495e; margin: 10px 0 0 0; font-size: 18px; font-weight: normal;">INFORMACIÓN PERSONAL Y FINANCIERA</h2>
+        </div>
+
+        <!-- Información Personal -->
+        <div style="margin-bottom: 25px;">
+          <h3 style="background-color: #3498db; color: white; padding: 8px 15px; margin: 0 0 15px 0; font-size: 16px;">📋 INFORMACIÓN PERSONAL</h3>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold; width: 25%;">Nombres:</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.Nombres || 'N/A'}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold; width: 25%;">Apellidos:</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.Apellidos || 'N/A'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Cédula:</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.Cedula || 'N/A'}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Fecha Nacimiento:</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${formatDate(clientData.FechaNacimiento)}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Teléfono:</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.Telefono || 'N/A'}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Celular:</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.Celular || 'N/A'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Email:</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.Email || 'N/A'}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Nacionalidad:</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.Nacionalidad || 'N/A'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Profesión:</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.Profesion || 'N/A'}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Lugar Nacimiento:</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.LugarNacimiento || 'N/A'}</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Información de Contacto -->
+        <div style="margin-bottom: 25px;">
+          <h3 style="background-color: #27ae60; color: white; padding: 8px 15px; margin: 0 0 15px 0; font-size: 16px;">📍 INFORMACIÓN DE CONTACTO</h3>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold; width: 25%;">Dirección:</td>
+              <td style="padding: 8px; border: 1px solid #ddd; width: 75%;">${clientData.Direccion || 'N/A'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Sector:</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.Sector || 'N/A'}</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Información Laboral -->
+        <div style="margin-bottom: 25px;">
+          <h3 style="background-color: #f39c12; color: white; padding: 8px 15px; margin: 0 0 15px 0; font-size: 16px;">💼 INFORMACIÓN LABORAL</h3>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold; width: 25%;">Lugar de Trabajo:</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.LugarTrabajo || 'N/A'}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold; width: 25%;">Teléfono Trabajo:</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.TelefonoTrabajo || 'N/A'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Dirección Trabajo:</td>
+              <td style="padding: 8px; border: 1px solid #ddd; width: 75%;" colspan="3">${clientData.DireccionTrabajo || 'N/A'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Ingresos:</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${formatCurrency(clientData.Ingresos)}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Tiempo Trabajo:</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.TiempoTrabajo || 'N/A'}</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Referencias Personales -->
+        ${referencias.length > 0 ? `
+        <div style="margin-bottom: 25px;">
+          <h3 style="background-color: #9b59b6; color: white; padding: 8px 15px; margin: 0 0 15px 0; font-size: 16px;">👥 REFERENCIAS PERSONALES</h3>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+            <tr style="background-color: #f8f9fa;">
+              <th style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Nombre</th>
+              <th style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Teléfono</th>
+              <th style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Relación</th>
+              <th style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Dirección</th>
+            </tr>
+            ${referencias.map(ref => `
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;">${ref.Nombres || 'N/A'} ${ref.Apellidos || ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${ref.Telefono || 'N/A'}</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${ref.Relacion || 'N/A'}</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${ref.Direccion || 'N/A'}</td>
+            </tr>
+            `).join('')}
+          </table>
+        </div>
+        ` : ''}
+
+        <!-- Información Adicional -->
+        ${clientData.Observaciones ? `
+        <div style="margin-bottom: 25px;">
+          <h3 style="background-color: #e74c3c; color: white; padding: 8px 15px; margin: 0 0 15px 0; font-size: 16px;">📝 OBSERVACIONES</h3>
+          <div style="padding: 15px; border: 1px solid #ddd; background-color: #f9f9f9; border-radius: 5px;">
+            <p style="margin: 0; line-height: 1.6;">${clientData.Observaciones}</p>
+          </div>
+        </div>
+        ` : ''}
+
+        <!-- Footer -->
+        <div style="margin-top: 40px; text-align: center; border-top: 2px solid #2c3e50; padding-top: 20px;">
+          <p style="margin: 0; color: #7f8c8d; font-size: 12px;">Documento generado el ${new Date().toLocaleDateString('es-DO')} a las ${new Date().toLocaleTimeString('es-DO')}</p>
+          <p style="margin: 5px 0 0 0; color: #7f8c8d; font-size: 12px;">Sistema de Gestión de Préstamos</p>
+        </div>
+      </div>
+    `;
   };
 
   return (
@@ -429,7 +904,19 @@ export default function CreditApplicationPage() {
                         <TableRow key={application.id}>
                           <TableCell>{application.id}</TableCell>
                           <TableCell>{application.fecha}</TableCell>
-                          <TableCell>{application.cliente}</TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              {application.cliente}
+                              {!application.cedula && (
+                                <Chip
+                                  label="Sin cédula"
+                                  color="error"
+                                  size="small"
+                                  sx={{ fontSize: '0.7rem', height: '20px' }}
+                                />
+                              )}
+                            </Box>
+                          </TableCell>
                           <TableCell>{formatCurrency(application.monto)}</TableCell>
                           <TableCell>{application.garantia}</TableCell>
                           <TableCell>
@@ -447,6 +934,8 @@ export default function CreditApplicationPage() {
                               variant="outlined"
                               size="small"
                               endIcon={<ExpandMoreIcon />}
+                              disabled={!application.cedula}
+                              title={!application.cedula ? 'Cliente sin cédula - No se pueden generar documentos' : 'Ver opciones'}
                             >
                               Opciones
                             </Button>
@@ -856,6 +1345,125 @@ export default function CreditApplicationPage() {
             }}
           >
             Crear Solicitud
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Print Dialog */}
+      <Dialog 
+        open={printDialogOpen} 
+        onClose={handlePrintDialogClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 }
+        }}
+      >
+        <DialogTitle sx={{ 
+          pb: 2, 
+          borderBottom: 1, 
+          borderColor: 'divider',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2
+        }}>
+          <PrintIcon color="primary" />
+          <Box>
+            <Typography variant="h6" fontWeight="600">
+              Documentos para Imprimir
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Cliente: {clientForPrint?.cliente || 'N/A'}
+            </Typography>
+          </Box>
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 3 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Seleccione los documentos que desea imprimir:
+          </Typography>
+          
+          <Stack spacing={2}>
+            {documentOptions.map((doc) => (
+              <Card 
+                key={doc.id}
+                variant="outlined"
+                sx={{ 
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  border: selectedDocuments.includes(doc.id) ? 2 : 1,
+                  borderColor: selectedDocuments.includes(doc.id) ? 'primary.main' : 'divider',
+                  bgcolor: selectedDocuments.includes(doc.id) ? 'primary.50' : 'transparent',
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    bgcolor: 'primary.50'
+                  }
+                }}
+                onClick={() => handleDocumentToggle(doc.id)}
+              >
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Stack direction="row" alignItems="center" spacing={2}>
+                    <Box
+                      sx={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        border: 2,
+                        borderColor: selectedDocuments.includes(doc.id) ? 'primary.main' : 'grey.400',
+                        bgcolor: selectedDocuments.includes(doc.id) ? 'primary.main' : 'transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      {selectedDocuments.includes(doc.id) && (
+                        <CheckCircleIcon sx={{ fontSize: 12, color: 'white' }} />
+                      )}
+                    </Box>
+                    <Box flex={1}>
+                      <Typography variant="subtitle2" fontWeight="600">
+                        {doc.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {doc.description}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </CardContent>
+              </Card>
+            ))}
+          </Stack>
+        </DialogContent>
+        
+        <DialogActions sx={{ p: 3, borderTop: 1, borderColor: 'divider', gap: 2 }}>
+          <Button 
+            onClick={handlePrintDialogClose}
+            variant="outlined"
+            size="large"
+            startIcon={<CloseIcon />}
+            sx={{ 
+              minWidth: 120,
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handlePrintDocuments}
+            variant="contained"
+            size="large"
+            startIcon={<PrintIcon />}
+            disabled={selectedDocuments.length === 0}
+            sx={{ 
+              minWidth: 180,
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600
+            }}
+          >
+            Imprimir ({selectedDocuments.length})
           </Button>
         </DialogActions>
       </Dialog>

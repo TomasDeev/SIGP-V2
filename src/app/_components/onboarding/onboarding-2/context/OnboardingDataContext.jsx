@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 // Crear el contexto
 const OnboardingDataContext = createContext();
@@ -12,10 +12,23 @@ export const useOnboardingData = () => {
   return context;
 };
 
-// Proveedor del contexto
-export const OnboardingDataProvider = ({ children }) => {
-  // Estado inicial para todos los datos del onboarding
-  const [onboardingData, setOnboardingData] = useState({
+// Función para obtener datos iniciales
+const getInitialData = () => {
+  // Verificar si hay datos de edición en localStorage
+  const editData = localStorage.getItem('onboardingEditData');
+  if (editData) {
+    try {
+      const parsedData = JSON.parse(editData);
+      // Limpiar localStorage después de cargar
+      localStorage.removeItem('onboardingEditData');
+      return parsedData;
+    } catch (error) {
+      console.error('Error parsing edit data:', error);
+    }
+  }
+
+  // Datos iniciales por defecto
+  return {
     // Datos del cálculo de préstamo
     loanCalculation: {
       capital: '',
@@ -45,7 +58,9 @@ export const OnboardingDataProvider = ({ children }) => {
       estadoCivil: '',
       profesion: '',
       ocupacion: '',
-      tipoResidencia: ''
+      tipoResidencia: '',
+      foto: null,
+      fotoPreview: null
     },
     
     // Dirección y localización
@@ -90,13 +105,31 @@ export const OnboardingDataProvider = ({ children }) => {
     
     // Cheques
     cheques: {
-      tipoPrestamo: '',
-      banco: '',
-      numeroCuenta: '',
-      tipoGarantia: '',
-      descripcionGarantia: ''
+        tipoPrestamo: '',
+        banco: '',
+        numeroCuenta: '',
+        tipoGarantia: '',
+        descripcionGarantia: ''
+      }
+    };
+};
+
+// Proveedor del contexto
+export const OnboardingDataProvider = ({ children }) => {
+  // Estado inicial para todos los datos del onboarding
+  const [onboardingData, setOnboardingData] = useState(() => getInitialData());
+  
+  // Estado para saber si estamos en modo edición
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Verificar si estamos en modo edición al cargar
+  useEffect(() => {
+    const editMode = localStorage.getItem('onboardingEditMode');
+    if (editMode === 'true') {
+      setIsEditing(true);
+      localStorage.removeItem('onboardingEditMode');
     }
-  });
+  }, []);
 
   // Función para actualizar una sección específica de los datos
   const updateSection = useCallback((section, data) => {
@@ -173,7 +206,9 @@ export const OnboardingDataProvider = ({ children }) => {
         estadoCivil: '',
         profesion: '',
         ocupacion: '',
-        tipoResidencia: ''
+        tipoResidencia: '',
+        foto: null,
+        fotoPreview: null
       },
       direccion: {
         provincia: '',
@@ -225,6 +260,8 @@ export const OnboardingDataProvider = ({ children }) => {
   // Valor del contexto
   const contextValue = {
     onboardingData,
+    isEditing,
+    setIsEditing,
     updateSection,
     updateField,
     addReferencia,

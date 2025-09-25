@@ -28,7 +28,7 @@ const Finalizar = () => {
   const [processComplete, setProcessComplete] = useState(false);
   const [error, setError] = useState(null);
   
-  const { getAllData, clearData } = useOnboardingData();
+  const { getAllData, clearData, isEditing } = useOnboardingData();
 
   const handleProcesar = () => {
     setOpenConfirmDialog(true);
@@ -47,8 +47,24 @@ const Finalizar = () => {
       // Obtener todos los datos del onboarding
       const onboardingData = getAllData();
       
-      // Crear la solicitud de crédito completa
-      const result = await OnboardingToCreditService.createCompleteApplication(onboardingData);
+      let result;
+      
+      if (isEditing) {
+        // Actualizar la solicitud de crédito existente
+        console.log('DEBUG - onboardingData completo:', onboardingData);
+        console.log('DEBUG - onboardingData.clientId:', onboardingData.clientId);
+        console.log('DEBUG - Todas las propiedades de onboardingData:', Object.keys(onboardingData));
+        
+        const clientId = onboardingData.clientId;
+        if (!clientId) {
+          throw new Error('No se encontró el ID del cliente para actualizar');
+        }
+        console.log('DEBUG - clientId que se va a usar:', clientId);
+        result = await OnboardingToCreditService.updateCompleteApplication(onboardingData, clientId);
+      } else {
+        // Crear la solicitud de crédito completa
+        result = await OnboardingToCreditService.createCompleteApplication(onboardingData);
+      }
       
       if (result.success) {
         setProcessComplete(true);
@@ -58,7 +74,7 @@ const Finalizar = () => {
         setError(result.error || 'Error al procesar la solicitud');
       }
     } catch (error) {
-      console.error('Error al crear la solicitud de crédito:', error);
+      console.error('Error al procesar la solicitud de crédito:', error);
       setError('Error inesperado al procesar la solicitud. Por favor, inténtelo de nuevo.');
     } finally {
       setProcessing(false);
@@ -85,10 +101,13 @@ const Finalizar = () => {
         <Box sx={{ p: 4, textAlign: 'center' }}>
           <CheckCircle sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
           <Typography variant="h4" gutterBottom color="success.main">
-            ¡Proceso Exitoso!
+            {isEditing ? '¡Actualización Exitosa!' : '¡Proceso Exitoso!'}
           </Typography>
           <Typography variant="body1" sx={{ mb: 3 }}>
-            Su solicitud ha sido procesada correctamente y se encuentra en revisión.
+            {isEditing 
+              ? 'Su solicitud ha sido actualizada correctamente.'
+              : 'Su solicitud ha sido procesada correctamente y se encuentra en revisión.'
+            }
           </Typography>
           <Button
             variant="contained"
@@ -176,11 +195,13 @@ const Finalizar = () => {
 
           <Box sx={{ textAlign: 'center', mb: 4 }}>
             <Typography variant="h5" gutterBottom>
-              ¿Está listo para finalizar?
+              {isEditing ? '¿Está listo para actualizar?' : '¿Está listo para finalizar?'}
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-              Revise toda la información ingresada antes de procesar su solicitud.
-              Una vez procesada, no podrá realizar cambios.
+              {isEditing 
+                ? 'Revise toda la información modificada antes de actualizar su solicitud.'
+                : 'Revise toda la información ingresada antes de procesar su solicitud. Una vez procesada, no podrá realizar cambios.'
+              }
             </Typography>
 
             <Alert severity="info" sx={{ mb: 4, textAlign: 'left' }}>
@@ -216,7 +237,7 @@ const Finalizar = () => {
                 minWidth: 200
               }}
             >
-              Procesar
+              {isEditing ? 'Actualizar' : 'Procesar'}
             </Button>
 
             <Button
@@ -248,12 +269,14 @@ const Finalizar = () => {
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center' }}>
           <CheckCircle sx={{ mr: 1, color: 'primary.main' }} />
-          Confirmar Procesamiento
+          {isEditing ? 'Confirmar Actualización' : 'Confirmar Procesamiento'}
         </DialogTitle>
         <DialogContent>
           <DialogContentText>
-            ¿Está seguro de que desea procesar su solicitud? 
-            Una vez confirmado, no podrá realizar cambios en la información ingresada.
+            {isEditing 
+              ? '¿Está seguro de que desea actualizar su solicitud con los cambios realizados?'
+              : '¿Está seguro de que desea procesar su solicitud? Una vez confirmado, no podrá realizar cambios en la información ingresada.'
+            }
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
@@ -265,7 +288,7 @@ const Finalizar = () => {
             variant="contained"
             startIcon={<Send />}
           >
-            Confirmar Procesamiento
+            {isEditing ? 'Confirmar Actualización' : 'Confirmar Procesamiento'}
           </Button>
         </DialogActions>
       </Dialog>

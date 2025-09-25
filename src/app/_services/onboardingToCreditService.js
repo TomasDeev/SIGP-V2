@@ -1,4 +1,5 @@
 import { supabaseAdmin as supabase } from '../_config/supabase-admin';
+import StorageService from './storageService';
 
 /**
  * Servicio para mapear datos del onboarding-2 a solicitudes de crédito
@@ -6,30 +7,32 @@ import { supabaseAdmin as supabase } from '../_config/supabase-admin';
 export class OnboardingToCreditService {
   
   /**
-   * Crear una cuenta de cliente a partir de los datos del onboarding
+   * Crear cuenta de cliente en la tabla cuentas
    */
   static async createClientAccount(onboardingData, empresaId = 1) {
     try {
+      const { datosPersonales, direccion, informacionLaboral } = onboardingData;
+
       const clientData = {
         IdEmpresa: empresaId,
-        Nombres: onboardingData.datosPersonales?.nombres || '',
-        Apellidos: onboardingData.datosPersonales?.apellidos || '',
-        Cedula: onboardingData.datosPersonales?.cedula || '',
-        Telefono: onboardingData.datosPersonales?.telefono || '',
-        Celular: onboardingData.datosPersonales?.celular || onboardingData.datosPersonales?.telefono || '',
-        Email: onboardingData.datosPersonales?.email || '',
-        Direccion: onboardingData.datosPersonales?.direccion || '',
-        Sector: onboardingData.datosPersonales?.sector || '',
-        Nacionalidad: onboardingData.datosPersonales?.nacionalidad || 'Dominicana',
-        LugarNacimiento: onboardingData.datosPersonales?.lugarNacimiento || '',
-        FechaNacimiento: onboardingData.datosPersonales?.fechaNacimiento || null,
-        EstadoCivil: OnboardingToCreditService.mapEstadoCivil(onboardingData.datosPersonales?.estadoCivil),
-        Profesion: onboardingData.datosPersonales?.profesion || '',
-        LugarTrabajo: onboardingData.informacionLaboral?.lugarTrabajo || '',
-        DireccionTrabajo: onboardingData.informacionLaboral?.direccionTrabajo || '',
-        TelefonoTrabajo: onboardingData.informacionLaboral?.telefonoTrabajo || '',
-        Ingresos: parseFloat(onboardingData.informacionLaboral?.ingresos || 0),
-        TiempoTrabajo: onboardingData.informacionLaboral?.tiempoTrabajo || '',
+        Nombres: datosPersonales?.nombres || '',
+        Apellidos: datosPersonales?.apellidos || '',
+        Cedula: datosPersonales?.cedula || '',
+        Telefono: datosPersonales?.telefono || '',
+        Celular: datosPersonales?.celular || '',
+        Email: datosPersonales?.email || '',
+        Direccion: direccion?.direccion || '',
+        Sector: direccion?.sector || '',
+        Nacionalidad: datosPersonales?.nacionalidad || 'Dominicana',
+        LugarNacimiento: datosPersonales?.lugarNacimiento || '',
+        FechaNacimiento: datosPersonales?.fechaNacimiento || null,
+        EstadoCivil: OnboardingToCreditService.mapEstadoCivil(datosPersonales?.estadoCivil),
+        Profesion: datosPersonales?.profesion || '',
+        LugarTrabajo: informacionLaboral?.empresa || '',
+        DireccionTrabajo: informacionLaboral?.direccion || '',
+        TelefonoTrabajo: informacionLaboral?.telefono || '',
+        Ingresos: OnboardingToCreditService.parseNumericValue(informacionLaboral?.ingresos, 0),
+        TiempoTrabajo: informacionLaboral?.tiempoTrabajo || '',
         Observaciones: OnboardingToCreditService.buildObservaciones(onboardingData),
         Activo: true
       };
@@ -41,6 +44,31 @@ export class OnboardingToCreditService {
         .single();
 
       if (error) throw error;
+
+      // Si hay una foto, subirla después de crear el cliente
+      if (datosPersonales?.foto) {
+        const photoResult = await StorageService.uploadClientPhoto(
+          datosPersonales.foto, 
+          data.IdCliente
+        );
+
+        if (photoResult.success) {
+          // Actualizar el registro del cliente con la URL de la foto
+          const { error: updateError } = await supabase
+            .from('cuentas')
+            .update({ Foto: photoResult.data.publicUrl })
+            .eq('IdCliente', data.IdCliente);
+
+          if (updateError) {
+            console.warn('Error actualizando URL de foto:', updateError);
+          } else {
+            data.Foto = photoResult.data.publicUrl;
+          }
+        } else {
+          console.warn('Error subiendo foto del cliente:', photoResult.error);
+        }
+      }
+
       return { success: true, data };
     } catch (error) {
       console.error('Error creando cuenta de cliente:', error);
@@ -58,11 +86,11 @@ export class OnboardingToCreditService {
       const loanData = {
         IdCuenta: clientId,
         IdEmpresa: empresaId,
-        CapitalPrestado: parseFloat(loanCalculation.capital || 0),
-        Cuotas: parseInt(loanCalculation.cantidadCuotas || 12),
-        Interes: parseFloat(loanCalculation.tasaInteres || 0),
-        GastoCierre: parseFloat(loanCalculation.gastoCierre || 0),
-        GastoSeguro: parseFloat(loanCalculation.montoSeguro || 0),
+        CapitalPrestado: OnboardingToCreditService.parseNumericValue(loanCalculation.capital, 0),
+        Cuotas: OnboardingToCreditService.parseNumericValue(loanCalculation.cantidadCuotas, 12),
+        Interes: OnboardingToCreditService.parseNumericValue(loanCalculation.tasaInteres, 0),
+        GastoCierre: OnboardingToCreditService.parseNumericValue(loanCalculation.gastoCierre, 0),
+        GastoSeguro: OnboardingToCreditService.parseNumericValue(loanCalculation.montoSeguro, 0),
         FechaPrimerPago: loanCalculation.fechaPrimerPago || new Date().toISOString(),
         FrecuenciaPago: 1, // Mensual por defecto
         IdTipoPrestamo: OnboardingToCreditService.mapTipoPrestamo(onboardingData.cheques?.tipoPrestamo),
@@ -95,6 +123,11 @@ export class OnboardingToCreditService {
   static async createPersonalReferences(onboardingData, clientId) {
     try {
       const referencias = onboardingData.referenciasPersonales || [];
+      
+      if (referencias.length === 0) {
+        return { success: true, data: [] };
+      }
+
       const referencesData = referencias.map(ref => ({
         IdCuenta: clientId,
         Nombres: ref.nombres || '',
@@ -106,19 +139,147 @@ export class OnboardingToCreditService {
         TiempoConocerlo: ref.tiempoConocerlo || ''
       }));
 
-      if (referencesData.length > 0) {
-        const { data, error } = await supabase
-          .from('referenciaspersonales')
-          .insert(referencesData)
-          .select();
+      const { data, error } = await supabase
+        .from('referenciaspersonales')
+        .insert(referencesData)
+        .select();
 
-        if (error) throw error;
-        return { success: true, data };
-      }
-
-      return { success: true, data: [] };
+      if (error) throw error;
+      return { success: true, data };
     } catch (error) {
       console.error('Error creando referencias personales:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Actualizar cuenta de cliente existente
+   */
+  static async updateClientAccount(onboardingData, clientId, empresaId = 1) {
+    try {
+      const { datosPersonales, direccion, informacionLaboral } = onboardingData;
+
+      // Verificar que el cliente existe antes de actualizar
+      const { data: existingClient, error: checkError } = await supabase
+        .from('cuentas')
+        .select('IdCliente, Nombres, Apellidos, Cedula')
+        .eq('IdCliente', clientId);
+
+      if (checkError) {
+        throw new Error(`Error verificando cliente: ${checkError.message}`);
+      }
+
+      if (!existingClient || existingClient.length === 0) {
+        throw new Error(`No se encontró el cliente con ID: ${clientId}`);
+      }
+
+      const clientData = {
+        IdEmpresa: empresaId,
+        Nombres: datosPersonales?.nombres || '',
+        Apellidos: datosPersonales?.apellidos || '',
+        Cedula: datosPersonales?.cedula || '',
+        Telefono: datosPersonales?.telefono || '',
+        Celular: datosPersonales?.celular || '',
+        Email: datosPersonales?.email || '',
+        Direccion: direccion?.direccion || '',
+        Sector: direccion?.sector || '',
+        Nacionalidad: datosPersonales?.nacionalidad || 'Dominicana',
+        LugarNacimiento: datosPersonales?.lugarNacimiento || '',
+        FechaNacimiento: datosPersonales?.fechaNacimiento || null,
+        EstadoCivil: OnboardingToCreditService.mapEstadoCivil(datosPersonales?.estadoCivil),
+        Profesion: datosPersonales?.profesion || '',
+        LugarTrabajo: informacionLaboral?.empresa || '',
+        DireccionTrabajo: informacionLaboral?.direccion || '',
+        TelefonoTrabajo: informacionLaboral?.telefono || '',
+        Ingresos: OnboardingToCreditService.parseNumericValue(informacionLaboral?.ingresos, 0),
+        TiempoTrabajo: informacionLaboral?.tiempoTrabajo || '',
+        Observaciones: OnboardingToCreditService.buildObservaciones(onboardingData),
+        Activo: true
+      };
+
+      // Ejecutar la actualización sin .select() para evitar problemas con RLS
+      const { error } = await supabase
+        .from('cuentas')
+        .update(clientData)
+        .eq('IdCliente', clientId);
+
+      if (error) {
+        throw new Error(`Error actualizando cliente: ${error.message}`);
+      }
+
+      // Verificar que la actualización fue exitosa obteniendo el cliente actualizado
+      const { data: updatedClient, error: fetchError } = await supabase
+        .from('cuentas')
+        .select('IdCliente, Nombres, Apellidos, Cedula, Email')
+        .eq('IdCliente', clientId)
+        .single();
+
+      if (fetchError) {
+        console.warn('Advertencia obteniendo cliente actualizado:', fetchError);
+        // Aún así consideramos la actualización exitosa
+        return { 
+          success: true, 
+          data: { 
+            IdCliente: clientId, 
+            ...clientData 
+          } 
+        };
+      }
+
+      return { success: true, data: updatedClient };
+    } catch (error) {
+      console.error('Error actualizando cliente:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Actualizar referencias personales (eliminar existentes y crear nuevas)
+   */
+  static async updatePersonalReferences(onboardingData, clientId) {
+    try {
+      // Primero eliminar referencias existentes
+      const { error: deleteError } = await supabase
+        .from('referenciaspersonales')
+        .delete()
+        .eq('IdCuenta', clientId);
+
+      if (deleteError) throw deleteError;
+
+      // Luego crear las nuevas referencias
+      return await OnboardingToCreditService.createPersonalReferences(onboardingData, clientId);
+    } catch (error) {
+      console.error('Error actualizando referencias personales:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Proceso completo de actualización: actualizar cliente y referencias
+   */
+  static async updateCompleteApplication(onboardingData, clientId, empresaId = 1) {
+    try {
+      // 1. Actualizar cuenta del cliente
+      const clientResult = await OnboardingToCreditService.updateClientAccount(onboardingData, clientId, empresaId);
+      if (!clientResult.success) {
+        throw new Error(`Error actualizando cliente: ${clientResult.error}`);
+      }
+
+      // 2. Actualizar referencias personales
+      const referencesResult = await OnboardingToCreditService.updatePersonalReferences(onboardingData, clientId);
+      if (!referencesResult.success) {
+        console.warn('Advertencia actualizando referencias:', referencesResult.error);
+      }
+
+      return {
+        success: true,
+        data: {
+          client: clientResult.data,
+          references: referencesResult.data || []
+        }
+      };
+    } catch (error) {
+      console.error('Error en proceso de actualización:', error);
       return { success: false, error: error.message };
     }
   }
@@ -160,6 +321,26 @@ export class OnboardingToCreditService {
       console.error('Error en proceso completo:', error);
       return { success: false, error: error.message };
     }
+  }
+
+  /**
+   * Parsear valor numérico de forma segura
+   */
+  static parseNumericValue(value, defaultValue = 0) {
+    // Si el valor es undefined, null, o string "undefined", retornar valor por defecto
+    if (value === undefined || value === null || value === "undefined" || value === "") {
+      return defaultValue;
+    }
+    
+    // Intentar convertir a número
+    const parsed = parseFloat(value);
+    
+    // Si el resultado es NaN, retornar valor por defecto
+    if (isNaN(parsed)) {
+      return defaultValue;
+    }
+    
+    return parsed;
   }
 
   /**

@@ -12,12 +12,16 @@ import {
   RadioGroup,
   FormControlLabel,
   Radio,
-  FormLabel
+  FormLabel,
+  Button,
+  Avatar,
+  Paper
 } from '@mui/material';
 import {
   Person,
   PersonOutline,
   Tag,
+  Badge,
   CalendarToday,
   Email,
   Phone,
@@ -27,7 +31,9 @@ import {
   Public,
   Work,
   School,
-  Home
+  Home,
+  PhotoCamera,
+  CloudUpload
 } from '@mui/icons-material';
 import { JumboCard } from '@jumbo/components';
 import { OnboardingAction } from '@app/_components/onboarding/common';
@@ -93,6 +99,7 @@ const DatosPersonales = () => {
     nombres: '',
     apellidos: '',
     apodo: '',
+    cedula: '',
     fechaNacimiento: '',
     sexo: 'Masculino',
     correo: '',
@@ -102,7 +109,9 @@ const DatosPersonales = () => {
     nacionalidad: 'Dominicano(a)',
     ocupacion: 'Información no disponible',
     profesion: 'Información no disponible',
-    tipoResidencia: ''
+    tipoResidencia: '',
+    foto: null,
+    fotoPreview: null
   });
 
   // Cargar datos del contexto al montar el componente
@@ -119,6 +128,46 @@ const DatosPersonales = () => {
     updateSection('datosPersonales', newData);
   };
 
+  const handleImageUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Validar que sea una imagen
+      if (!file.type.startsWith('image/')) {
+        alert('Por favor selecciona un archivo de imagen válido');
+        return;
+      }
+
+      // Validar tamaño (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('La imagen debe ser menor a 5MB');
+        return;
+      }
+
+      // Crear preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const newData = { 
+          ...datosPersonales, 
+          foto: file,
+          fotoPreview: e.target.result 
+        };
+        setDatosPersonales(newData);
+        updateSection('datosPersonales', newData);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    const newData = { 
+      ...datosPersonales, 
+      foto: null,
+      fotoPreview: null 
+    };
+    setDatosPersonales(newData);
+    updateSection('datosPersonales', newData);
+  };
+
   return (
     <JumboCard
       title="Paso 4: Datos Personales"
@@ -132,6 +181,81 @@ const DatosPersonales = () => {
           </Typography>
 
           <Grid container spacing={3}>
+            {/* Foto del cliente */}
+            <Grid item xs={12}>
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600, fontSize: '1rem' }}>
+                  Foto del Cliente
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                  {/* Preview de la imagen */}
+                  <Paper
+                    elevation={2}
+                    sx={{
+                      width: 120,
+                      height: 120,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '2px dashed',
+                      borderColor: datosPersonales.fotoPreview ? 'primary.main' : 'grey.300',
+                      borderRadius: 2,
+                      overflow: 'hidden',
+                      position: 'relative'
+                    }}
+                  >
+                    {datosPersonales.fotoPreview ? (
+                      <img
+                        src={datosPersonales.fotoPreview}
+                        alt="Preview"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                      />
+                    ) : (
+                      <PhotoCamera sx={{ fontSize: 40, color: 'grey.400' }} />
+                    )}
+                  </Paper>
+
+                  {/* Botones de acción */}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Button
+                      variant="contained"
+                      component="label"
+                      startIcon={<CloudUpload />}
+                      sx={{ fontSize: '0.9rem' }}
+                    >
+                      Subir Foto
+                      <input
+                        type="file"
+                        hidden
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                      />
+                    </Button>
+                    
+                    {datosPersonales.fotoPreview && (
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={handleRemoveImage}
+                        sx={{ fontSize: '0.9rem' }}
+                      >
+                        Eliminar
+                      </Button>
+                    )}
+                    
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                      Formatos: JPG, PNG, GIF<br />
+                      Tamaño máximo: 5MB
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </Grid>
+
             {/* Primera fila */}
             <Grid item xs={12} md={6}>
               <TextField
@@ -189,6 +313,33 @@ const DatosPersonales = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
+                label="Cédula"
+                value={datosPersonales.cedula}
+                onChange={(e) => handleInputChange('cedula', e.target.value)}
+                placeholder="000-0000000-0"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Badge sx={{ color: 'text.secondary', fontSize: '1.1rem' }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ 
+                  '& .MuiInputBase-input': { 
+                    fontSize: '0.9rem',
+                    fontWeight: 400
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: '0.9rem',
+                    fontWeight: 500
+                  }
+                }}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
                 label="Apodo"
                 value={datosPersonales.apodo}
                 onChange={(e) => handleInputChange('apodo', e.target.value)}
@@ -212,6 +363,7 @@ const DatosPersonales = () => {
               />
             </Grid>
 
+            {/* Tercera fila */}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -242,7 +394,7 @@ const DatosPersonales = () => {
               />
             </Grid>
 
-            {/* Tercera fila - Sexo */}
+            {/* Cuarta fila - Sexo */}
             <Grid item xs={12} md={6}>
               <FormControl component="fieldset">
                 <FormLabel 
@@ -358,7 +510,7 @@ const DatosPersonales = () => {
               />
             </Grid>
 
-            {/* Cuarta fila */}
+            {/* Quinta fila */}
             <Grid item xs={12} md={6}>
               <FormControl fullWidth>
                 <InputLabel 
@@ -437,7 +589,7 @@ const DatosPersonales = () => {
               </FormControl>
             </Grid>
 
-            {/* Quinta fila */}
+            {/* Sexta fila */}
             <Grid item xs={12} md={6}>
               <FormControl fullWidth>
                 <InputLabel 
