@@ -31,6 +31,7 @@ import {
   Tooltip,
   Menu,
   TablePagination,
+  CircularProgress,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -54,167 +55,43 @@ import {
   ExpandMore as ExpandMoreIcon,
 } from "@mui/icons-material";
 import { JumboCard } from "@jumbo/components";
+import { PrestamosService } from "../../../_services/prestamosService";
 
 
-const generateSampleData = () => {
-  
-  const datosReales = [
-    {
-      id: '108159',
-      fecha: '20/09/2025',
-      cliente: 'JULIO MANUEL DANIEL',
-      cedula: '001-1234567-9',
-      telefono: '(809) 555-1239',
-      monto: 500000,
-      garantia: 'HONDA CIVIC EX 2016',
-      proveedor: 'NINGUNO',
-      localizacion: 'SanIsidro',
-      estado: 'Vendido'
-    },
-    {
-      id: '108155',
-      fecha: '20/09/2025',
-      cliente: 'JUAN UREÑA BAUTISTA',
-      cedula: '001-1234567-8',
-      telefono: '(809) 555-1234',
-      monto: 200000,
-      garantia: 'PRESTAMO CON PAGARE NOTARIAL',
-      proveedor: 'WALQUIDIA GUZMAN',
-      localizacion: 'Ozama',
-      estado: 'En contabilidad'
-    },
-    {
-      id: '108154',
-      fecha: '20/09/2025',
-      cliente: 'CONSTUCTORA YIRI YIRI',
-      cedula: '131-0123456-7',
-      telefono: '(829) 555-1254',
-      monto: 3000000,
-      garantia: 'PRESTAMO CON PAGARE NOTARIAL',
-      proveedor: 'WALQUIDIA GUZMAN',
-      localizacion: 'Ozama',
-      estado: 'En Evaluacion'
-    },
-    {
-      id: '108153',
-      fecha: '20/09/2025',
-      cliente: 'CARLOS DAVID CABRERA POLANCO',
-      cedula: '001-2345678-9',
-      telefono: '(809) 555-1253',
-      monto: 350000,
-      garantia: 'HONDA ACCORD LX 2014',
-      proveedor: 'NINGUNO',
-      localizacion: 'Costa Rica',
-      estado: 'En Solicitud'
-    },
-    {
-      id: '108152',
-      fecha: '20/09/2025',
-      cliente: 'CONSTUCTORA YIRI YIRI',
-      cedula: '131-0123456-7',
-      telefono: '(829) 555-1254',
-      monto: 2000000,
-      garantia: 'PRESTAMO CON PAGARE NOTARIAL',
-      proveedor: 'WALQUIDIA GUZMAN',
-      localizacion: 'Charles',
-      estado: 'Aprobado'
-    },
-    {
-      id: '108151',
-      fecha: '20/09/2025',
-      cliente: 'RAFEL SANTIAGO CASTELLANOS SURIEL',
-      cedula: '001-3456789-0',
-      telefono: '(809) 555-1251',
-      monto: 350000,
-      garantia: 'HONDA CIVIC EX-L 2013',
-      proveedor: 'NINGUNO',
-      localizacion: 'Costa Rica',
-      estado: 'Declinado'
-    },
-    {
-      id: '108150',
-      fecha: '29/09/2025',
-      cliente: 'HICELA MONTERO MEDINA',
-      cedula: '001-4567890-1',
-      telefono: '(809) 555-1250',
-      monto: 380000,
-      garantia: 'HYUNDAI SONATA LF 2019',
-      proveedor: 'TORRE FORUM',
-      localizacion: 'Forum27',
-      estado: 'Aprobado'
-    },
-    {
-      id: '108149',
-      fecha: '19/09/2025',
-      cliente: 'RONI LUNA TORRES',
-      cedula: '001-5678901-2',
-      telefono: '(829) 555-1249',
-      monto: 180000,
-      garantia: 'HYUNDAI SONATA Y20 2013',
-      proveedor: 'NINGUNO',
-      localizacion: 'Zambvka',
-      estado: 'Aprobado'
-    }
-  ];
 
-  // Nombres adicionales para completar los datos
-  const nombresAdicionales = [
-    'MARÍA ELENA SANTOS PÉREZ', 'JOSÉ ANTONIO GARCÍA LÓPEZ', 'CARMEN ROSA JIMÉNEZ',
-    'FRANCISCO JAVIER SÁNCHEZ MARTÍN', 'ISABEL CRISTINA GONZÁLEZ RUIZ', 'ANTONIO MIGUEL HERNÁNDEZ',
-    'PILAR MERCEDES JIMÉNEZ MORENO', 'MANUEL ALBERTO ÁLVAREZ CASTRO', 'ROSA MARÍA ROMERO ORTEGA',
-    'PEDRO LUIS DELGADO RAMOS', 'LUCÍA ESPERANZA VARGAS HERRERA', 'MIGUEL ÁNGEL TORRES IGLESIAS',
-    'ELENA PATRICIA RAMÍREZ VEGA', 'RAFAEL DOMINGO FLORES MEDINA', 'CRISTINA BEATRIZ GUERRERO',
-    'ALEJANDRO JOSÉ PEÑA CORTÉS', 'BEATRIZ ALTAGRACIA MENDOZA', 'SERGIO RAFAEL AGUILAR NAVARRO',
-    'NATALIA MERCEDES CABRERA MORALES', 'DIEGO ANTONIO HERRERA CAMPOS', 'MÓNICA ELIZABETH VÁZQUEZ',
-    'RUBÉN FRANCISCO CASTILLO PRIETO', 'ANDREA CAROLINA IGLESIAS SOTO', 'JAVIER EDUARDO MÉNDEZ',
-    'SILVIA MARÍA PASCUAL FERRER', 'ÓSCAR LUIS SANTANA MARÍN', 'VERÓNICA ROSA MOLINA CANO'
-  ];
 
-  const proveedores = ['WALQUIDIA GUZMAN', 'NINGUNO', 'TORRE FORUM', 'MARÍA JOSÉ PEÑA', 'CARLOS ALBERTO SANTOS'];
-  
-  const ciudades = ['Ozama', 'SanIsidro', 'Costa Rica', 'Charles', 'Forum27', 'Zambvka', 'Santiago', 'La Romana'];
-  
-  const estados = ['En Solicitud', 'En Evaluacion', 'Declinado', 'Aprobado', 'En contabilidad', 'Vendido'];
-  
-  const garantias = [
-    'PRESTAMO CON PAGARE NOTARIAL',
-    'HONDA CIVIC EX 2016', 'HONDA ACCORD LX 2014', 'HONDA CIVIC EX-L 2013',
-    'HYUNDAI SONATA LF 2019', 'HYUNDAI SONATA Y20 2013',
-    'TOYOTA COROLLA LE 2018', 'NISSAN SENTRA SV 2017', 'KIA FORTE LX 2020',
-    'MITSUBISHI LANCER ES 2015', 'CHEVROLET CRUZE LT 2019'
-  ];
-
-  const data = [...datosReales];
-
-  // Generar datos adicionales para completar hasta 75 registros
-  for (let i = datosReales.length; i < 75; i++) {
-    const año = Math.random() > 0.7 ? 2024 : 2025;
-    const mes = Math.floor(Math.random() * 12);
-    const día = Math.floor(Math.random() * 28) + 1;
-    const fecha = new Date(año, mes, día);
-    
-    data.push({
-      id: `${108100 + i}`,
-      fecha: fecha.toLocaleDateString('es-DO', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric' 
-      }),
-      cliente: nombresAdicionales[Math.floor(Math.random() * nombresAdicionales.length)],
-      cedula: `001-${String(1000000 + i).slice(1)}-${Math.floor(Math.random() * 10)}`,
-      telefono: `(${Math.random() > 0.5 ? '809' : '829'}) 555-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
-      monto: Math.floor(Math.random() * 2800000) + 180000, // Montos entre 180K y 3M
-      garantia: garantias[Math.floor(Math.random() * garantias.length)],
-      proveedor: proveedores[Math.floor(Math.random() * proveedores.length)],
-      localizacion: ciudades[Math.floor(Math.random() * ciudades.length)],
-      estado: estados[Math.floor(Math.random() * estados.length)]
-    });
-  }
-  
-  return data;
+// Función para transformar datos de la base de datos al formato esperado por la UI
+const transformLoanData = (loans) => {
+  return loans.map(loan => ({
+    id: `${loan.Prefijo || ''}${loan.PrestamoNo || loan.IdPrestamo?.toString() || ''}`,
+    fecha: loan.FechaCreacion ? new Date(loan.FechaCreacion).toLocaleDateString('es-DO', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    }) : '',
+    cliente: `${loan.Cuentas?.Nombres || ''} ${loan.Cuentas?.Apellidos || ''}`.trim(),
+    cedula: loan.Cuentas?.Cedula || '',
+    telefono: loan.Cuentas?.Telefono || loan.Cuentas?.Celular || '',
+    monto: loan.CapitalPrestado || 0,
+    garantia: loan.Garantias?.[0]?.Descripcion || 'PRESTAMO CON PAGARE NOTARIAL',
+    proveedor: loan.Empresas?.NombreComercial || 'NINGUNO',
+    localizacion: loan.Cuentas?.Sector || '',
+    estado: getEstadoName(loan.IdEstado)
+  }));
 };
 
-const initialApplications = generateSampleData();
+// Función para convertir ID de estado a nombre
+const getEstadoName = (idEstado) => {
+  const estados = {
+    1: 'En Solicitud',
+    2: 'En Evaluacion', 
+    3: 'Aprobado',
+    4: 'Declinado',
+    5: 'En contabilidad',
+    6: 'Vendido'
+  };
+  return estados[idEstado] || 'En Solicitud';
+};
 
 const getStatusColor = (estado) => {
   switch (estado) {
@@ -264,7 +141,8 @@ const formatCurrency = (amount) => {
 
 export default function CreditApplicationPage() {
   const navigate = useNavigate();
-  const [applications, setApplications] = useState(initialApplications);
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedRow, setSelectedRow] = useState(null);
@@ -286,6 +164,32 @@ export default function CreditApplicationPage() {
 
   // Estado para almacenar datos de la calculadora de préstamos
   const [loanCalculationData, setLoanCalculationData] = useState(null);
+
+  // Función para cargar préstamos desde la base de datos
+  const loadLoans = async () => {
+    try {
+      setLoading(true);
+      const result = await PrestamosService.getAll();
+      
+      if (result.success) {
+        const transformedData = transformLoanData(result.data);
+        setApplications(transformedData);
+      } else {
+        console.error('Error cargando préstamos:', result.error);
+        setApplications([]);
+      }
+    } catch (error) {
+      console.error('Error cargando préstamos:', error);
+      setApplications([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // useEffect para cargar préstamos al montar el componente
+  useEffect(() => {
+    loadLoans();
+  }, []);
 
   // useEffect para cargar datos de la calculadora de préstamos si existen
   useEffect(() => {
@@ -501,9 +405,27 @@ export default function CreditApplicationPage() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {applications
-                        .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                        .map((application, index) => (
+                      {loading ? (
+                        <TableRow>
+                          <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                            <CircularProgress />
+                            <Typography variant="body2" sx={{ mt: 2 }}>
+                              Cargando solicitudes...
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ) : applications.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              No hay solicitudes disponibles
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        applications
+                          .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                          .map((application, index) => (
                         <TableRow key={application.id}>
                           <TableCell>{application.id}</TableCell>
                           <TableCell>{application.fecha}</TableCell>
@@ -530,7 +452,8 @@ export default function CreditApplicationPage() {
                             </Button>
                           </TableCell>
                         </TableRow>
-                      ))}
+                          ))
+                      )}
                     </TableBody>
                 </Table>
               </TableContainer>

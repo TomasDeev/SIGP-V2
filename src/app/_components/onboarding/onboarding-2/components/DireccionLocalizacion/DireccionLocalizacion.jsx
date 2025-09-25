@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -18,8 +18,12 @@ import {
 } from '@mui/icons-material';
 import { JumboCard } from '@jumbo/components';
 import { OnboardingAction } from '@app/_components/onboarding/common';
+import { useOnboardingData } from '../../context/OnboardingDataContext';
 
 const DireccionLocalizacion = () => {
+  // Hook para el contexto global de onboarding
+  const { onboardingData, updateOnboardingData } = useOnboardingData();
+
   const [direccion, setDireccion] = useState({
     calle: '',
     subsector: '',
@@ -30,8 +34,19 @@ const DireccionLocalizacion = () => {
     referenciaUbicacion: ''
   });
 
+  // Efecto para cargar datos del contexto global
+  useEffect(() => {
+    if (onboardingData.direccionLocalizacion) {
+      setDireccion(onboardingData.direccionLocalizacion);
+    }
+  }, [onboardingData.direccionLocalizacion]);
+
   const handleInputChange = (field, value) => {
-    setDireccion(prev => ({ ...prev, [field]: value }));
+    const newDireccion = { ...direccion, [field]: value };
+    setDireccion(newDireccion);
+    updateOnboardingData({
+      direccionLocalizacion: newDireccion
+    });
   };
 
   return (

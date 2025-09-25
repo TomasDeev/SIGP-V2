@@ -10,7 +10,6 @@ const stepNames = [
   "Datos Personales",
   "Dirección",
   "Cónyuge",
-  "Teléfonos",
   "Laboral",
   "Referencias",
   "Cheques",

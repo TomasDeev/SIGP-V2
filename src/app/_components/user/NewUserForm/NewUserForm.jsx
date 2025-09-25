@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   CardContent,
+  Container,
   Divider,
   FormControl,
   FormControlLabel,
@@ -37,7 +38,7 @@ import {
 } from "@mui/icons-material";
 import { useUserCompany } from "@app/_hooks/useUserCompany";
 
-const NewUserForm = () => {
+const NewUserForm = ({ onSuccess, onCancel }) => {
   // Hook para obtener datos de la empresa del usuario
   const { companyData, loading: companyLoading } = useUserCompany();
 
@@ -144,13 +145,52 @@ const NewUserForm = () => {
   };
 
   // Función para manejar el envío del formulario
-  const handleSubmit = () => {
-    console.log("Datos del formulario:", {
-      personalInfo,
-      accountInfo,
-      accessControl,
-    });
-    // Aquí iría la lógica para enviar los datos al servidor
+  const handleSubmit = async () => {
+    // Validaciones básicas
+    if (!passwordValid || !passwordsMatch || !personalInfo.nombre || !accountInfo.email) {
+      alert("Por favor, complete todos los campos requeridos y verifique que las contraseñas coincidan.");
+      return;
+    }
+
+    try {
+      // Preparar datos para envío
+      const userData = {
+        // Información Personal
+        Nombres: personalInfo.nombre,
+        Apellidos: personalInfo.apellidos || "",
+        Direccion: personalInfo.direccion || "",
+        Telefono: personalInfo.telefono || "",
+        
+        // Información de Cuenta
+        IdEmpresa: accountInfo.empresa || companyData?.IdEmpresa,
+        IdSucursal: accountInfo.sucursal || "",
+        NombreUsuario: accountInfo.usuario,
+        Email: accountInfo.email,
+        password: accountInfo.password,
+        
+        // Control de Acceso
+        DiasRegulares: accessControl.regularDays,
+        Sabado: accessControl.saturday,
+        Domingo: accessControl.sunday,
+        
+        Activo: true,
+      };
+
+      console.log("Creando usuario con datos:", userData);
+      
+      // Simular creación exitosa por ahora
+      // En el futuro aquí iría la llamada al servicio
+      // const result = await UsuariosService.create(userData);
+      
+      // Llamar a onSuccess si se proporciona
+      if (onSuccess) {
+        onSuccess();
+      }
+      
+    } catch (error) {
+      console.error("Error al crear usuario:", error);
+      alert("Error al crear el usuario. Por favor, intente nuevamente.");
+    }
   };
 
   // Función para validar contraseñas
@@ -158,13 +198,66 @@ const NewUserForm = () => {
   const passwordValid = accountInfo.password.length >= 6;
 
   return (
-    <React.Fragment>
-      {/* Sección 1 - Información Personal */}
-      <JumboCard
-        title="Información Personal"
-        subheader="Complete los datos personales del usuario"
-        contentWrapper
-        sx={{ mb: 4 }}
+    <Container
+      maxWidth={false}
+      sx={{
+        maxWidth: "1200px",
+        display: "flex",
+        minWidth: 0,
+        flex: 1,
+        flexDirection: "column",
+        px: 2,
+        py: 4,
+      }}
+      disableGutters
+    >
+      {/* Logo SIGP */}
+      <Box display="flex" justifyContent="center" mb={3}>
+        <img src="/SIGP Nuevo logo.png" alt="SIGP" style={{ maxHeight: '60px' }} />
+      </Box>
+
+      {/* Título Principal */}
+      <Typography 
+        variant="h4" 
+        component="h1" 
+        align="center" 
+        sx={{ 
+          mb: 2, 
+          fontWeight: 600,
+          color: 'primary.main'
+        }}
+      >
+        Agregar Nuevo Usuario
+      </Typography>
+
+      {/* Descripción */}
+      <Typography 
+        variant="body1" 
+        align="center" 
+        sx={{ 
+          mb: 4, 
+          backgroundColor: 'primary.main',
+          color: 'white',
+          p: 2,
+          borderRadius: 3,
+          maxWidth: '800px',
+          mx: 'auto'
+        }}
+      >
+        Complete la información para crear un nuevo usuario en el sistema
+      </Typography>
+
+      {/* Formulario Principal */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: 4,
+          borderRadius: 4,
+          backgroundColor: 'background.paper',
+          border: '1px solid',
+          borderColor: 'divider',
+          width: '100%'
+        }}
       >
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6" sx={{ mb: 2, color: "primary.main" }}>
@@ -238,15 +331,10 @@ const NewUserForm = () => {
             </Grid>
           </Grid>
         </Box>
-      </JumboCard>
 
-      {/* Sección 2 - Información de su cuenta */}
-      <JumboCard
-        title="Información de su cuenta"
-        subheader="Configure los datos de acceso y empresa"
-        contentWrapper
-        sx={{ mb: 4 }}
-      >
+        <Divider sx={{ my: 4 }} />
+
+        {/* Sección 2 - Información de su cuenta */}
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6" sx={{ mb: 2, color: "primary.main" }}>
             Empresa y Sucursal
@@ -435,15 +523,13 @@ const NewUserForm = () => {
             </Grid>
           </Grid>
         </Box>
-      </JumboCard>
 
-      {/* Sección 3 - Control de acceso */}
-      <JumboCard
-        title="Control de acceso"
-        subheader="Configure los horarios y días de acceso al sistema"
-        contentWrapper
-        sx={{ mb: 4 }}
-      >
+        <Divider sx={{ my: 4 }} />
+
+        {/* Sección 3 - Control de acceso */}
+        <Typography variant="h6" sx={{ mb: 3, color: "primary.main" }}>
+          Control de acceso
+        </Typography>
         {/* Días Regulares (Lun-Vie) */}
         <Box sx={{ mb: 4 }}>
           <Typography variant="h6" sx={{ mb: 2, color: "primary.main" }}>
@@ -669,6 +755,7 @@ const NewUserForm = () => {
           <Button
             variant="outlined"
             size="large"
+            onClick={onCancel}
             sx={{
               borderRadius: 2,
               px: 4,
@@ -693,8 +780,8 @@ const NewUserForm = () => {
             Crear Usuario
           </Button>
         </Box>
-      </JumboCard>
-    </React.Fragment>
+      </Paper>
+    </Container>
   );
 };
 

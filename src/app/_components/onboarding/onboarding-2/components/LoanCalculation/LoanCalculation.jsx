@@ -33,6 +33,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import { useUserCompany } from "@app/_hooks/useUserCompany";
 import { useNavigate } from "react-router-dom";
+import { useOnboardingData } from "../../context/OnboardingDataContext";
 
 const LoanCalculation = () => {
   // Hook para obtener datos de la empresa del usuario
@@ -40,6 +41,9 @@ const LoanCalculation = () => {
   
   // Hook para navegación
   const navigate = useNavigate();
+
+  // Hook para el contexto global de onboarding
+  const { onboardingData, updateOnboardingData } = useOnboardingData();
   
   // Estados para el formulario
   const [selectedAgent, setSelectedAgent] = useState("");
@@ -93,6 +97,29 @@ const LoanCalculation = () => {
     { id: 2, name: "María García", cedula: "001-2345678-9" },
     { id: 3, name: "Carlos López", cedula: "001-3456789-0" },
   ]);
+
+  // Efecto para cargar datos del contexto global
+  useEffect(() => {
+    if (onboardingData.loanCalculation) {
+      const { loanCalculation } = onboardingData;
+      
+      if (loanCalculation.loanData) {
+        setLoanData(loanCalculation.loanData);
+      }
+      
+      if (loanCalculation.agentData) {
+        setAgentData(loanCalculation.agentData);
+      }
+      
+      if (loanCalculation.insuranceData) {
+        setInsuranceData(loanCalculation.insuranceData);
+      }
+      
+      if (loanCalculation.showAdditionalValues !== undefined) {
+        setShowAdditionalValues(loanCalculation.showAdditionalValues);
+      }
+    }
+  }, [onboardingData.loanCalculation]);
 
   // Efecto para cargar automáticamente los valores por defecto de la empresa
   useEffect(() => {
@@ -200,6 +227,37 @@ const LoanCalculation = () => {
     const description = generatePlanDescription();
     setPlanDescription(description);
   }, [loanData.capital, loanData.cantidadCuotas, loanData.tasaInteres]);
+
+  // Función para actualizar el contexto global
+  const updateContext = (newData) => {
+    updateOnboardingData({
+      loanCalculation: {
+        ...onboardingData.loanCalculation,
+        ...newData
+      }
+    });
+  };
+
+  // Función para manejar cambios en loanData
+  const handleLoanDataChange = (field, value) => {
+    const newLoanData = { ...loanData, [field]: value };
+    setLoanData(newLoanData);
+    updateContext({ loanData: newLoanData });
+  };
+
+  // Función para manejar cambios en agentData
+  const handleAgentDataChange = (field, value) => {
+    const newAgentData = { ...agentData, [field]: value };
+    setAgentData(newAgentData);
+    updateContext({ agentData: newAgentData });
+  };
+
+  // Función para manejar cambios en insuranceData
+  const handleInsuranceDataChange = (field, value) => {
+    const newInsuranceData = { ...insuranceData, [field]: value };
+    setInsuranceData(newInsuranceData);
+    updateContext({ insuranceData: newInsuranceData });
+  };
 
   // Función para manejar el guardado del agente
   const handleSaveAgent = () => {
@@ -429,7 +487,7 @@ const LoanCalculation = () => {
                 label="Capital"
                 type="number"
                 value={loanData.capital}
-                onChange={(e) => setLoanData({ ...loanData, capital: e.target.value })}
+                onChange={(e) => handleLoanDataChange('capital', e.target.value)}
                 InputProps={{
                   startAdornment: <Typography sx={{ mr: 1, fontSize: '0.875rem' }}>RD$</Typography>,
                 }}
@@ -442,7 +500,7 @@ const LoanCalculation = () => {
                 label="Gasto por cierre"
                 type="number"
                 value={loanData.gastoCierre}
-                onChange={(e) => setLoanData({ ...loanData, gastoCierre: e.target.value })}
+                onChange={(e) => handleLoanDataChange('gastoCierre', e.target.value)}
                 InputProps={{
                   startAdornment: <Typography sx={{ mr: 1, fontSize: '0.875rem' }}>RD$</Typography>,
                 }}
@@ -455,7 +513,7 @@ const LoanCalculation = () => {
                 label="Tasa de interés"
                 type="number"
                 value={loanData.tasaInteres}
-                onChange={(e) => setLoanData({ ...loanData, tasaInteres: e.target.value })}
+                onChange={(e) => handleLoanDataChange('tasaInteres', e.target.value)}
                 InputProps={{
                   endAdornment: <Typography sx={{ ml: 1, fontSize: '0.875rem' }}>%</Typography>,
                 }}
@@ -468,7 +526,7 @@ const LoanCalculation = () => {
                 label="Cantidad de cuotas"
                 type="number"
                 value={loanData.cantidadCuotas}
-                onChange={(e) => setLoanData({ ...loanData, cantidadCuotas: e.target.value })}
+                onChange={(e) => handleLoanDataChange('cantidadCuotas', e.target.value)}
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -478,7 +536,7 @@ const LoanCalculation = () => {
                 label="Fecha del contrato"
                 type="date"
                 value={loanData.fechaContrato}
-                onChange={(e) => setLoanData({ ...loanData, fechaContrato: e.target.value })}
+                onChange={(e) => handleLoanDataChange('fechaContrato', e.target.value)}
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
@@ -489,7 +547,7 @@ const LoanCalculation = () => {
                 label="Fecha primer pago"
                 type="date"
                 value={loanData.fechaPrimerPago}
-                onChange={(e) => setLoanData({ ...loanData, fechaPrimerPago: e.target.value })}
+                onChange={(e) => handleLoanDataChange('fechaPrimerPago', e.target.value)}
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
@@ -552,7 +610,7 @@ const LoanCalculation = () => {
                       label="Monto Seguro"
                       type="number"
                       value={insuranceData.montoSeguro}
-                      onChange={(e) => setInsuranceData({ ...insuranceData, montoSeguro: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => handleInsuranceDataChange('montoSeguro', parseFloat(e.target.value) || 0)}
                       InputProps={{
                         startAdornment: <Typography sx={{ mr: 1, fontSize: '0.875rem' }}>RD$</Typography>,
                       }}
@@ -565,7 +623,7 @@ const LoanCalculation = () => {
                       label="Aplicar seguro desde cuota..."
                       type="number"
                       value={insuranceData.aplicarSeguroDesde}
-                      onChange={(e) => setInsuranceData({ ...insuranceData, aplicarSeguroDesde: parseInt(e.target.value) || 0 })}
+                      onChange={(e) => handleInsuranceDataChange('aplicarSeguroDesde', parseInt(e.target.value) || 0)}
                       inputProps={{ min: 1, max: parseInt(loanData.cantidadCuotas) || 12 }}
                     />
                   </Grid>
@@ -576,7 +634,7 @@ const LoanCalculation = () => {
                       label="Aplicar seguro hasta cuota..."
                       type="number"
                       value={insuranceData.aplicarSeguroHasta}
-                      onChange={(e) => setInsuranceData({ ...insuranceData, aplicarSeguroHasta: parseInt(e.target.value) || 0 })}
+                      onChange={(e) => handleInsuranceDataChange('aplicarSeguroHasta', parseInt(e.target.value) || 0)}
                       inputProps={{ min: 1, max: parseInt(loanData.cantidadCuotas) || 12 }}
                     />
                   </Grid>
@@ -776,7 +834,7 @@ const LoanCalculation = () => {
                 fullWidth
                 label="Cédula"
                 value={agentData.cedula}
-                onChange={(e) => setAgentData({ ...agentData, cedula: e.target.value })}
+                onChange={(e) => handleAgentDataChange('cedula', e.target.value)}
                 placeholder="001-1234567-8"
               />
             </Grid>
@@ -785,7 +843,7 @@ const LoanCalculation = () => {
                 fullWidth
                 label="Nombre"
                 value={agentData.nombre}
-                onChange={(e) => setAgentData({ ...agentData, nombre: e.target.value })}
+                onChange={(e) => handleAgentDataChange('nombre', e.target.value)}
                 placeholder="Nombre completo"
               />
             </Grid>
@@ -794,7 +852,7 @@ const LoanCalculation = () => {
                 fullWidth
                 label="Teléfono"
                 value={agentData.telefono}
-                onChange={(e) => setAgentData({ ...agentData, telefono: e.target.value })}
+                onChange={(e) => handleAgentDataChange('telefono', e.target.value)}
                 placeholder="809-123-4567"
               />
             </Grid>
@@ -803,7 +861,7 @@ const LoanCalculation = () => {
                 fullWidth
                 label="Dirección"
                 value={agentData.direccion}
-                onChange={(e) => setAgentData({ ...agentData, direccion: e.target.value })}
+                onChange={(e) => handleAgentDataChange('direccion', e.target.value)}
                 placeholder="Dirección completa"
                 multiline
                 rows={2}

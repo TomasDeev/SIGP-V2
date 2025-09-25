@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -24,8 +24,12 @@ import {
 } from '@mui/icons-material';
 import { JumboCard } from '@jumbo/components';
 import { OnboardingAction } from '@app/_components/onboarding/common';
+import { useOnboardingData } from '../../context/OnboardingDataContext';
 
 const Telefonos = () => {
+  // Hook para el contexto global de onboarding
+  const { onboardingData, updateOnboardingData } = useOnboardingData();
+
   const [telefonos, setTelefonos] = useState([
     {
       numero: '',
@@ -34,20 +38,38 @@ const Telefonos = () => {
     }
   ]);
 
+  // Efecto para cargar datos del contexto global
+  useEffect(() => {
+    if (onboardingData.telefonos && onboardingData.telefonos.length > 0) {
+      setTelefonos(onboardingData.telefonos);
+    }
+  }, [onboardingData.telefonos]);
+
+  // Función para actualizar el contexto global
+  const updateContext = (newTelefonos) => {
+    updateOnboardingData({
+      telefonos: newTelefonos
+    });
+  };
+
   const handleTelefonoChange = (index, field, value) => {
     const newTelefonos = [...telefonos];
     newTelefonos[index][field] = value;
     setTelefonos(newTelefonos);
+    updateContext(newTelefonos);
   };
 
   const addTelefono = () => {
-    setTelefonos([...telefonos, { numero: '', tipo: '', residencia: '' }]);
+    const newTelefonos = [...telefonos, { numero: '', tipo: '', residencia: '' }];
+    setTelefonos(newTelefonos);
+    updateContext(newTelefonos);
   };
 
   const removeTelefono = (index) => {
     if (telefonos.length > 1) {
       const newTelefonos = telefonos.filter((_, i) => i !== index);
       setTelefonos(newTelefonos);
+      updateContext(newTelefonos);
     }
   };
 

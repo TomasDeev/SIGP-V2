@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Grid,
@@ -20,6 +20,8 @@ import {
   Tag,
   CalendarToday,
   Email,
+  Phone,
+  PhoneAndroid,
   Wc,
   Favorite,
   Public,
@@ -29,6 +31,7 @@ import {
 } from '@mui/icons-material';
 import { JumboCard } from '@jumbo/components';
 import { OnboardingAction } from '@app/_components/onboarding/common';
+import { useOnboardingData } from '../../context/OnboardingDataContext';
 
 // Opciones para los dropdowns
 const estadosCiviles = [
@@ -85,6 +88,7 @@ const tiposResidencia = [
 ];
 
 const DatosPersonales = () => {
+  const { onboardingData, updateSection } = useOnboardingData();
   const [datosPersonales, setDatosPersonales] = useState({
     nombres: '',
     apellidos: '',
@@ -92,6 +96,8 @@ const DatosPersonales = () => {
     fechaNacimiento: '',
     sexo: 'Masculino',
     correo: '',
+    telefono: '',
+    celular: '',
     estadoCivil: 'Soltero(a)',
     nacionalidad: 'Dominicano(a)',
     ocupacion: 'Información no disponible',
@@ -99,8 +105,18 @@ const DatosPersonales = () => {
     tipoResidencia: ''
   });
 
+  // Cargar datos del contexto al montar el componente
+  useEffect(() => {
+    if (onboardingData.datosPersonales) {
+      setDatosPersonales(onboardingData.datosPersonales);
+    }
+  }, [onboardingData.datosPersonales]);
+
   const handleInputChange = (field, value) => {
-    setDatosPersonales(prev => ({ ...prev, [field]: value }));
+    const newData = { ...datosPersonales, [field]: value };
+    setDatosPersonales(newData);
+    // Actualizar el contexto global
+    updateSection('datosPersonales', newData);
   };
 
   return (
@@ -273,6 +289,59 @@ const DatosPersonales = () => {
                   startAdornment: (
                     <InputAdornment position="start">
                       <Email sx={{ color: 'text.secondary', fontSize: '1.1rem' }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ 
+                  '& .MuiInputBase-input': { 
+                    fontSize: '0.9rem',
+                    fontWeight: 400
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: '0.9rem',
+                    fontWeight: 500
+                  }
+                }}
+              />
+            </Grid>
+
+            {/* Teléfonos */}
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Teléfono"
+                value={datosPersonales.telefono}
+                onChange={(e) => handleInputChange('telefono', e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Phone sx={{ color: 'text.secondary', fontSize: '1.1rem' }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ 
+                  '& .MuiInputBase-input': { 
+                    fontSize: '0.9rem',
+                    fontWeight: 400
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: '0.9rem',
+                    fontWeight: 500
+                  }
+                }}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Celular"
+                value={datosPersonales.celular}
+                onChange={(e) => handleInputChange('celular', e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <PhoneAndroid sx={{ color: 'text.secondary', fontSize: '1.1rem' }} />
                     </InputAdornment>
                   ),
                 }}

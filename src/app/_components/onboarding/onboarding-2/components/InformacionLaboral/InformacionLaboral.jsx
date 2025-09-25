@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -21,8 +21,10 @@ import {
 } from '@mui/icons-material';
 import { JumboCard } from '@jumbo/components';
 import { OnboardingAction } from '@app/_components/onboarding/common';
+import { useOnboardingData } from '../../context/OnboardingDataContext';
 
 const InformacionLaboral = () => {
+  const { onboardingData, updateSection } = useOnboardingData();
   const [datosLaborales, setDatosLaborales] = useState({
     empresa: '',
     cargo: '',
@@ -32,8 +34,17 @@ const InformacionLaboral = () => {
     quienPagara: ''
   });
 
+  // Cargar datos del contexto al montar el componente
+  useEffect(() => {
+    if (onboardingData.informacionLaboral) {
+      setDatosLaborales(onboardingData.informacionLaboral);
+    }
+  }, [onboardingData.informacionLaboral]);
+
   const handleInputChange = (field, value) => {
-    setDatosLaborales(prev => ({ ...prev, [field]: value }));
+    const newData = { ...datosLaborales, [field]: value };
+    setDatosLaborales(newData);
+    updateSection('informacionLaboral', newData);
   };
 
   return (

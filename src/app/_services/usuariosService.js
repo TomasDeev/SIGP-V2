@@ -14,7 +14,6 @@ export class UsuariosService {
     try {
       console.log('🔍 Ejecutando consulta de usuarios...');
       
-<<<<<<< HEAD
       // Obtener usuarios básicos primero
       const { data: usuarios, error } = await supabase
         .from('usuarios')
@@ -258,11 +257,7 @@ export class UsuariosService {
    */
   static async update(id, usuarioData) {
     try {
-<<<<<<< HEAD
       const { Nombres, Apellidos, NombreUsuario, Activo, IdEmpresa, Direccion, Telefono, IdSucursal } = usuarioData;
-=======
-      const { Nombres, Apellidos, NombreUsuario, Activo } = usuarioData;
->>>>>>> ef43340ff7e59074ca0ba8c81ea909cf71827f63
 
       // Solo actualizamos los campos permitidos en la tabla usuarios
       const updates = {};
@@ -270,13 +265,10 @@ export class UsuariosService {
       if (Apellidos !== undefined) updates.Apellidos = Apellidos;
       if (NombreUsuario !== undefined) updates.NombreUsuario = NombreUsuario;
       if (Activo !== undefined) updates.Activo = Activo;
-<<<<<<< HEAD
       if (IdEmpresa !== undefined) updates.IdEmpresa = IdEmpresa;
       if (Direccion !== undefined) updates.Direccion = Direccion;
       if (Telefono !== undefined) updates.Telefono = Telefono;
       if (IdSucursal !== undefined) updates.IdSucursal = IdSucursal;
-=======
->>>>>>> ef43340ff7e59074ca0ba8c81ea909cf71827f63
 
       const { data, error } = await supabase
         .from('usuarios')

@@ -5,6 +5,7 @@ import {
   useOnboarding,
 } from "@app/_components/onboarding";
 import { steps } from "@app/_components/onboarding/onboarding-2";
+import { OnboardingDataProvider } from "@app/_components/onboarding/onboarding-2/context/OnboardingDataContext";
 import { CONTAINER_MAX_WIDTH } from "@app/_config/layouts";
 import { Div } from "@jumbo/shared";
 import { Container } from "@mui/material";
@@ -40,9 +41,11 @@ const OnboardingPage2 = () => {
       }}
       disableGutters
     >
-      <OnboardingProvider initSteps={steps}>
-        <OnboardingComponent />
-      </OnboardingProvider>
+      <OnboardingDataProvider>
+        <OnboardingProvider initSteps={steps}>
+          <OnboardingComponent />
+        </OnboardingProvider>
+      </OnboardingDataProvider>
     </Container>
   );
 };

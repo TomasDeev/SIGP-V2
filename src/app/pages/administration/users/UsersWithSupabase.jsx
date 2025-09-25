@@ -21,6 +21,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Menu,
   Card,
   CardContent,
   Divider,
@@ -35,6 +36,7 @@ import {
   FormControlLabel,
   FormGroup,
   Paper,
+  Container,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -46,6 +48,7 @@ import {
   Search as SearchIcon,
   Refresh as RefreshIcon,
   Business as BusinessIcon,
+  ExpandMore as ExpandMoreIcon,
 } from "@mui/icons-material";
 import { JumboCard } from "@jumbo/components";
 import { UsuariosService } from "../../../_services/usuariosService";
@@ -70,6 +73,10 @@ const UsersWithSupabase = () => {
   const [dialogMode, setDialogMode] = useState("create"); // create, edit, view
   const [selectedUser, setSelectedUser] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+
+  // Estados para menú de opciones
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [menuSelectedUser, setMenuSelectedUser] = useState(null);
 
   // Estados para formulario
   const [formData, setFormData] = useState({
@@ -407,6 +414,36 @@ const UsersWithSupabase = () => {
     }
   };
 
+  // Funciones para manejar el menú de opciones
+  const handleMenuClick = (event, user) => {
+    setAnchorEl(event.currentTarget);
+    setMenuSelectedUser(user);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setMenuSelectedUser(null);
+  };
+
+  const handleMenuOption = (option) => {
+    if (!menuSelectedUser) return;
+
+    switch (option) {
+      case 'ver':
+        openViewDialog(menuSelectedUser);
+        break;
+      case 'editar':
+        openEditDialog(menuSelectedUser);
+        break;
+      case 'eliminar':
+        handleDelete(menuSelectedUser);
+        break;
+      default:
+        break;
+    }
+    handleMenuClose();
+  };
+
   // Filtrar usuarios
   const filteredUsers = users.filter(user => {
     const matchesSearch = !searchTerm || 
@@ -642,33 +679,14 @@ const UsersWithSupabase = () => {
                       {user.FechaCreacion ? new Date(user.FechaCreacion).toLocaleDateString() : "-"}
                     </TableCell>
                     <TableCell align="center">
-                      <Stack direction="row" spacing={1} justifyContent="center">
-                        <Tooltip title="Ver detalles">
-                          <IconButton
-                            size="small"
-                            onClick={() => openViewDialog(user)}
-                          >
-                            <VisibilityIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Editar">
-                          <IconButton
-                            size="small"
-                            onClick={() => openEditDialog(user)}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Eliminar">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleDelete(user)}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
+                      <Button
+                        onClick={(event) => handleMenuClick(event, user)}
+                        variant="outlined"
+                        size="small"
+                        endIcon={<ExpandMoreIcon />}
+                      >
+                        Opciones
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -691,17 +709,166 @@ const UsersWithSupabase = () => {
         />
       </JumboCard>
 
+      {/* Menú de opciones */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        PaperProps={{
+          sx: {
+            minWidth: '180px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            borderRadius: '8px',
+            border: '1px solid #e0e0e0',
+            mt: 1
+          }
+        }}
+      >
+        <MenuItem 
+          onClick={() => handleMenuOption('ver')}
+          sx={{ 
+            py: 1.2, 
+            px: 2,
+            '&:hover': { backgroundColor: '#f8f9fa' }
+          }}
+        >
+          <VisibilityIcon sx={{ mr: 2, fontSize: 16, color: '#3498db' }} />
+          <Typography variant="body2" sx={{ fontWeight: 400, fontSize: '0.875rem' }}>Ver Detalles</Typography>
+        </MenuItem>
+        
+        <MenuItem 
+          onClick={() => handleMenuOption('editar')}
+          sx={{ 
+            py: 1.2, 
+            px: 2,
+            '&:hover': { backgroundColor: '#f8f9fa' }
+          }}
+        >
+          <EditIcon sx={{ mr: 2, fontSize: 16, color: '#f39c12' }} />
+          <Typography variant="body2" sx={{ fontWeight: 400, fontSize: '0.875rem' }}>Editar</Typography>
+        </MenuItem>
+        
+        <MenuItem 
+          onClick={() => handleMenuOption('eliminar')}
+          sx={{ 
+            py: 1.2, 
+            px: 2,
+            '&:hover': { backgroundColor: '#fdf2f2' }
+          }}
+        >
+          <DeleteIcon sx={{ mr: 2, fontSize: 16, color: '#e74c3c' }} />
+          <Typography variant="body2" sx={{ fontWeight: 400, fontSize: '0.875rem', color: '#e74c3c' }}>Eliminar</Typography>
+        </MenuItem>
+      </Menu>
+
       {/* Dialog para crear/editar/ver usuario */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="lg" fullWidth>
-        <DialogTitle>
-          {dialogMode === "create" && "Nuevo Usuario"}
-          {dialogMode === "edit" && "Editar Usuario"}
-          {dialogMode === "view" && "Detalles de Usuario"}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ p: 2 }}>
-            <Paper elevation={1} sx={{ p: 3 }}>
-              <Grid container spacing={2}>
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="xl" fullWidth>
+        {dialogMode !== "create" && (
+          <DialogTitle>
+            {dialogMode === "edit" && "Editar Usuario"}
+            {dialogMode === "view" && "Detalles de Usuario"}
+          </DialogTitle>
+        )}
+        <DialogContent 
+          sx={{ 
+            p: 0,
+            // Ocultar scrollbar pero mantener funcionalidad
+            '&::-webkit-scrollbar': {
+              display: 'none'
+            },
+            '-ms-overflow-style': 'none',
+            'scrollbar-width': 'none',
+            overflow: 'auto'
+          }}
+        >
+          <Container maxWidth="1200px" sx={{ py: 4 }}>
+            {/* Logo y título */}
+            <Box sx={{ textAlign: 'center', mb: 4 }}>
+              <img 
+                src="/SIGP Nuevo logo.png" 
+                alt="SIGP Nuevo logo" 
+                style={{ height: '60px', marginBottom: '16px' }}
+              />
+              <Typography 
+                variant="h4" 
+                component="h1" 
+                gutterBottom 
+                sx={{ 
+                  fontWeight: 600, 
+                  color: 'primary.main',
+                  mb: 2
+                }}
+              >
+                {dialogMode === "create" ? "Agregar Nuevo Usuario" : 
+                 dialogMode === "edit" ? "Editar Usuario" : "Detalles de Usuario"}
+              </Typography>
+              
+              {/* Cuadro con color de empresa para el texto descriptivo */}
+              <Typography 
+                variant="body1" 
+                sx={{ 
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  p: 2.5,
+                  borderRadius: 3,
+                  maxWidth: '600px',
+                  mx: 'auto',
+                  fontWeight: 500,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}
+              >
+                {dialogMode === "create" ? "Complete la información para crear un nuevo usuario en el sistema" :
+                 dialogMode === "edit" ? "Modifique la información del usuario" : "Información detallada del usuario"}
+              </Typography>
+            </Box>
+
+            {/* Formulario principal */}
+            <Paper 
+              elevation={3} 
+              sx={{ 
+                p: 5, 
+                borderRadius: 4, 
+                border: '1px solid',
+                borderColor: 'divider',
+                backgroundColor: 'background.paper',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                position: 'relative',
+                overflow: 'hidden',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '4px',
+                  background: 'linear-gradient(90deg, primary.main, primary.light)',
+                }
+              }}
+            >
+              {/* Información Personal */}
+              <Typography 
+                variant="h6" 
+                gutterBottom 
+                sx={{ 
+                  fontWeight: 600, 
+                  mb: 3,
+                  color: 'primary.main',
+                  display: 'flex',
+                  alignItems: 'center',
+                  '&::before': {
+                    content: '""',
+                    width: '4px',
+                    height: '20px',
+                    backgroundColor: 'primary.main',
+                    marginRight: 2,
+                    borderRadius: 1
+                  }
+                }}
+              >
+                Información Personal
+              </Typography>
+              
+              <Grid container spacing={3} sx={{ mb: 4 }}>
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
@@ -750,6 +917,35 @@ const UsersWithSupabase = () => {
                     disabled={dialogMode === "view"}
                   />
                 </Grid>
+              </Grid>
+
+              {/* Divisor */}
+              <Divider sx={{ my: 4 }} />
+
+              {/* Información de Cuenta */}
+              <Typography 
+                variant="h6" 
+                gutterBottom 
+                sx={{ 
+                  fontWeight: 600, 
+                  mb: 3,
+                  color: 'primary.main',
+                  display: 'flex',
+                  alignItems: 'center',
+                  '&::before': {
+                    content: '""',
+                    width: '4px',
+                    height: '20px',
+                    backgroundColor: 'primary.main',
+                    marginRight: 2,
+                    borderRadius: 1
+                  }
+                }}
+              >
+                Información de Cuenta
+              </Typography>
+              
+              <Grid container spacing={3} sx={{ mb: 4 }}>
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
@@ -761,7 +957,35 @@ const UsersWithSupabase = () => {
                     required
                   />
                 </Grid>
+              </Grid>
 
+              {/* Divisor */}
+              <Divider sx={{ my: 4 }} />
+
+              {/* Empresa y Sucursal */}
+              <Typography 
+                variant="h6" 
+                gutterBottom 
+                sx={{ 
+                  fontWeight: 600, 
+                  mb: 3,
+                  color: 'primary.main',
+                  display: 'flex',
+                  alignItems: 'center',
+                  '&::before': {
+                    content: '""',
+                    width: '4px',
+                    height: '20px',
+                    backgroundColor: 'primary.main',
+                    marginRight: 2,
+                    borderRadius: 1
+                  }
+                }}
+              >
+                Empresa y Sucursal
+              </Typography>
+              
+              <Grid container spacing={3} sx={{ mb: 4 }}>
                 <Grid item xs={12} md={6}>
                   <FormControl fullWidth disabled={dialogMode === "view"}>
                     <InputLabel>Empresa</InputLabel>
@@ -794,8 +1018,37 @@ const UsersWithSupabase = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                {dialogMode === "create" && (
-                  <>
+              </Grid>
+
+              {dialogMode === "create" && (
+                <>
+                  {/* Divisor */}
+                  <Divider sx={{ my: 4 }} />
+
+                  {/* Contraseñas */}
+                  <Typography 
+                    variant="h6" 
+                    gutterBottom 
+                    sx={{ 
+                      fontWeight: 600, 
+                      mb: 3,
+                      color: 'primary.main',
+                      display: 'flex',
+                      alignItems: 'center',
+                      '&::before': {
+                        content: '""',
+                        width: '4px',
+                        height: '20px',
+                        backgroundColor: 'primary.main',
+                        marginRight: 2,
+                        borderRadius: 1
+                      }
+                    }}
+                  >
+                    Contraseñas
+                  </Typography>
+                  
+                  <Grid container spacing={3} sx={{ mb: 4 }}>
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
@@ -819,8 +1072,37 @@ const UsersWithSupabase = () => {
                         error={formData.confirmPassword && formData.password !== formData.confirmPassword}
                       />
                     </Grid>
-                  </>
-                )}
+                  </Grid>
+                </>
+              )}
+
+              {/* Divisor */}
+              <Divider sx={{ my: 4 }} />
+
+              {/* Estado */}
+              <Typography 
+                variant="h6" 
+                gutterBottom 
+                sx={{ 
+                  fontWeight: 600, 
+                  mb: 3,
+                  color: 'primary.main',
+                  display: 'flex',
+                  alignItems: 'center',
+                  '&::before': {
+                    content: '""',
+                    width: '4px',
+                    height: '20px',
+                    backgroundColor: 'primary.main',
+                    marginRight: 2,
+                    borderRadius: 1
+                  }
+                }}
+              >
+                Estado
+              </Typography>
+              
+              <Grid container spacing={3} sx={{ mb: 4 }}>
                 <Grid item xs={12} md={6}>
                   <FormControl fullWidth disabled={dialogMode === "view"}>
                     <InputLabel>Estado</InputLabel>
@@ -834,8 +1116,37 @@ const UsersWithSupabase = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                {dialogMode === "view" && selectedUser && (
-                  <>
+              </Grid>
+
+              {dialogMode === "view" && selectedUser && (
+                <>
+                  {/* Divisor */}
+                  <Divider sx={{ my: 4 }} />
+
+                  {/* Información Adicional */}
+                  <Typography 
+                    variant="h6" 
+                    gutterBottom 
+                    sx={{ 
+                      fontWeight: 600, 
+                      mb: 3,
+                      color: 'primary.main',
+                      display: 'flex',
+                      alignItems: 'center',
+                      '&::before': {
+                        content: '""',
+                        width: '4px',
+                        height: '20px',
+                        backgroundColor: 'primary.main',
+                        marginRight: 2,
+                        borderRadius: 1
+                      }
+                    }}
+                  >
+                    Información Adicional
+                  </Typography>
+                  
+                  <Grid container spacing={3} sx={{ mb: 4 }}>
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
@@ -852,11 +1163,11 @@ const UsersWithSupabase = () => {
                         disabled
                       />
                     </Grid>
-                  </>
-                )}
-              </Grid>
+                  </Grid>
+                </>
+              )}
             </Paper>
-          </Box>
+          </Container>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>
@@ -864,7 +1175,7 @@ const UsersWithSupabase = () => {
           </Button>
           {dialogMode !== "view" && (
             <Button variant="contained" onClick={handleSubmit}>
-              {dialogMode === "create" ? "Crear" : "Actualizar"}
+              {dialogMode === "edit" ? "Actualizar" : "Crear"}
             </Button>
           )}
         </DialogActions>

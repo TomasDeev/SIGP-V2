@@ -18,12 +18,17 @@ import {
   Warning
 } from '@mui/icons-material';
 import { JumboCard } from '@jumbo/components';
+import { useOnboardingData } from '../../context/OnboardingDataContext';
+import { OnboardingToCreditService } from '@app/_services/onboardingToCreditService';
 
 const Finalizar = () => {
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
   const [openCancelDialog, setOpenCancelDialog] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [processComplete, setProcessComplete] = useState(false);
+  const [error, setError] = useState(null);
+  
+  const { getAllData, clearData } = useOnboardingData();
 
   const handleProcesar = () => {
     setOpenConfirmDialog(true);
@@ -36,12 +41,28 @@ const Finalizar = () => {
   const confirmProcesar = async () => {
     setOpenConfirmDialog(false);
     setProcessing(true);
+    setError(null);
     
-    // Simular procesamiento
-    setTimeout(() => {
+    try {
+      // Obtener todos los datos del onboarding
+      const onboardingData = getAllData();
+      
+      // Crear la solicitud de crédito completa
+      const result = await OnboardingToCreditService.createCompleteApplication(onboardingData);
+      
+      if (result.success) {
+        setProcessComplete(true);
+        // Limpiar los datos del onboarding después del éxito
+        clearData();
+      } else {
+        setError(result.error || 'Error al procesar la solicitud');
+      }
+    } catch (error) {
+      console.error('Error al crear la solicitud de crédito:', error);
+      setError('Error inesperado al procesar la solicitud. Por favor, inténtelo de nuevo.');
+    } finally {
       setProcessing(false);
-      setProcessComplete(true);
-    }, 3000);
+    }
   };
 
   const confirmCancelar = () => {
@@ -96,6 +117,46 @@ const Finalizar = () => {
           <Typography variant="body2" color="text.secondary">
             Por favor espere mientras procesamos su información...
           </Typography>
+        </Box>
+      </JumboCard>
+    );
+  }
+
+  if (error) {
+    return (
+      <JumboCard
+        title="Error en el Procesamiento"
+        sx={{ mb: 3 }}
+      >
+        <Box sx={{ p: 4, textAlign: 'center' }}>
+          <Cancel sx={{ fontSize: 80, color: 'error.main', mb: 2 }} />
+          <Typography variant="h4" gutterBottom color="error.main">
+            Error al Procesar
+          </Typography>
+          <Alert severity="error" sx={{ mb: 3, textAlign: 'left' }}>
+            {error}
+          </Alert>
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+            <Button
+              variant="contained"
+              size="large"
+              onClick={() => {
+                setError(null);
+                setProcessComplete(false);
+              }}
+              sx={{ borderRadius: 5 }}
+            >
+              Intentar de Nuevo
+            </Button>
+            <Button
+              variant="outlined"
+              size="large"
+              onClick={() => window.location.href = '/'}
+              sx={{ borderRadius: 5 }}
+            >
+              Volver al Inicio
+            </Button>
+          </Box>
         </Box>
       </JumboCard>
     );

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -29,8 +29,10 @@ import {
 } from '@mui/icons-material';
 import { JumboCard } from '@jumbo/components';
 import { OnboardingAction } from '@app/_components/onboarding/common';
+import { useOnboardingData } from '../../context/OnboardingDataContext';
 
 const ReferenciasPersonales = () => {
+  const { onboardingData, updateSection } = useOnboardingData();
   const [referencias, setReferencias] = useState([
     {
       id: 1,
@@ -41,28 +43,43 @@ const ReferenciasPersonales = () => {
     }
   ]);
 
+  // Cargar datos del contexto al montar el componente
+  useEffect(() => {
+    if (onboardingData.referenciasPersonales && onboardingData.referenciasPersonales.length > 0) {
+      setReferencias(onboardingData.referenciasPersonales);
+    }
+  }, [onboardingData.referenciasPersonales]);
+
+  const updateContext = (newReferencias) => {
+    updateSection('referenciasPersonales', newReferencias);
+  };
+
   const handleInputChange = (id, field, value) => {
-    setReferencias(prev => 
-      prev.map(ref => 
-        ref.id === id ? { ...ref, [field]: value } : ref
-      )
+    const newReferencias = referencias.map(ref => 
+      ref.id === id ? { ...ref, [field]: value } : ref
     );
+    setReferencias(newReferencias);
+    updateContext(newReferencias);
   };
 
   const addReferencia = () => {
     const newId = Math.max(...referencias.map(r => r.id)) + 1;
-    setReferencias(prev => [...prev, {
+    const newReferencias = [...referencias, {
       id: newId,
       nombre: '',
       telefono: '',
       direccion: '',
       parentesco: ''
-    }]);
+    }];
+    setReferencias(newReferencias);
+    updateContext(newReferencias);
   };
 
   const removeReferencia = (id) => {
     if (referencias.length > 1) {
-      setReferencias(prev => prev.filter(ref => ref.id !== id));
+      const newReferencias = referencias.filter(ref => ref.id !== id);
+      setReferencias(newReferencias);
+      updateContext(newReferencias);
     }
   };
 

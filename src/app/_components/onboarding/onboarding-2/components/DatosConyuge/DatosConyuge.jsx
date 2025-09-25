@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -25,8 +25,10 @@ import {
 } from '@mui/icons-material';
 import { JumboCard } from '@jumbo/components';
 import { OnboardingAction } from '@app/_components/onboarding/common';
+import { useOnboardingData } from '../../context/OnboardingDataContext';
 
 const DatosConyuge = () => {
+  const { onboardingData, updateSection } = useOnboardingData();
   const [datosConyuge, setDatosConyuge] = useState({
     nombres: '',
     apellidos: '',
@@ -41,8 +43,17 @@ const DatosConyuge = () => {
     direccionTrabajo: ''
   });
 
+  // Cargar datos del contexto al montar el componente
+  useEffect(() => {
+    if (onboardingData.datosConyuge) {
+      setDatosConyuge(onboardingData.datosConyuge);
+    }
+  }, [onboardingData.datosConyuge]);
+
   const handleInputChange = (field, value) => {
-    setDatosConyuge(prev => ({ ...prev, [field]: value }));
+    const newData = { ...datosConyuge, [field]: value };
+    setDatosConyuge(newData);
+    updateSection('datosConyuge', newData);
   };
 
   return (

@@ -1,4 +1,4 @@
-import { supabase } from '../_config/supabase';
+import { supabaseAdmin as supabase } from '../_config/supabase-admin';
 
 /**
  * Servicio para gestionar las operaciones CRUD de Préstamos
@@ -11,11 +11,12 @@ export class PrestamosService {
   static async getAll() {
     try {
       const { data, error } = await supabase
-        .from('Prestamos')
+        .from('prestamos')
         .select(`
           *,
-          Empresas!inner(RazonSocial, NombreComercial),
-          Usuarios!inner(Nombre)
+          empresas!inner(RazonSocial, NombreComercial),
+          cuentas!inner(Nombres, Apellidos, Cedula, Telefono, Celular, Sector),
+          garantias(Descripcion)
         `)
         .order('FechaCreacion', { ascending: false });
       
@@ -33,11 +34,11 @@ export class PrestamosService {
   static async getById(id) {
     try {
       const { data, error } = await supabase
-        .from('Prestamos')
+        .from('prestamos')
         .select(`
           *,
-          Empresas!inner(RazonSocial, NombreComercial, Tasa, Mora),
-          Usuarios!inner(Nombre, Telefono)
+          empresas!inner(RazonSocial, NombreComercial, Tasa, Mora),
+          usuarios!inner(Nombre, Telefono)
         `)
         .eq('IdPrestamo', id)
         .single();
@@ -56,7 +57,7 @@ export class PrestamosService {
   static async create(prestamoData) {
     try {
       const { data, error } = await supabase
-        .from('Prestamos')
+        .from('prestamos')
         .insert([prestamoData])
         .select()
         .single();
@@ -75,7 +76,7 @@ export class PrestamosService {
   static async update(id, prestamoData) {
     try {
       const { data, error } = await supabase
-        .from('Prestamos')
+        .from('prestamos')
         .update(prestamoData)
         .eq('IdPrestamo', id)
         .select()
@@ -95,7 +96,7 @@ export class PrestamosService {
   static async delete(id) {
     try {
       const { error } = await supabase
-        .from('Prestamos')
+        .from('prestamos')
         .delete()
         .eq('IdPrestamo', id);
       
@@ -113,10 +114,10 @@ export class PrestamosService {
   static async getByEmpresa(idEmpresa) {
     try {
       const { data, error } = await supabase
-        .from('Prestamos')
+        .from('prestamos')
         .select(`
           *,
-          Usuarios!inner(Nombre)
+          usuarios!inner(Nombre)
         `)
         .eq('IdEmpresa', idEmpresa)
         .order('FechaCreacion', { ascending: false });
@@ -135,10 +136,10 @@ export class PrestamosService {
   static async getByUsuario(idUsuario) {
     try {
       const { data, error } = await supabase
-        .from('Prestamos')
+        .from('prestamos')
         .select(`
           *,
-          Empresas!inner(RazonSocial, NombreComercial)
+          empresas!inner(RazonSocial, NombreComercial)
         `)
         .eq('IdUsuario', idUsuario)
         .order('FechaCreacion', { ascending: false });
@@ -157,11 +158,11 @@ export class PrestamosService {
   static async search(searchTerm) {
     try {
       const { data, error } = await supabase
-        .from('Prestamos')
+        .from('prestamos')
         .select(`
           *,
-          Empresas!inner(RazonSocial, NombreComercial),
-          Usuarios!inner(Nombre)
+          empresas!inner(RazonSocial, NombreComercial),
+          usuarios!inner(Nombre)
         `)
         .or(`NumeroContrato.ilike.%${searchTerm}%,Observaciones.ilike.%${searchTerm}%`)
         .order('FechaCreacion', { ascending: false });
@@ -180,11 +181,11 @@ export class PrestamosService {
   static async getByEstado(estado) {
     try {
       const { data, error } = await supabase
-        .from('Prestamos')
+        .from('prestamos')
         .select(`
           *,
-          Empresas!inner(RazonSocial, NombreComercial),
-          Usuarios!inner(Nombre)
+          empresas!inner(RazonSocial, NombreComercial),
+          usuarios!inner(Nombre)
         `)
         .eq('Estado', estado)
         .order('FechaCreacion', { ascending: false });
@@ -204,14 +205,14 @@ export class PrestamosService {
     try {
       // Total de préstamos
       const { count: total, error: errorTotal } = await supabase
-        .from('Prestamos')
+        .from('prestamos')
         .select('*', { count: 'exact', head: true });
       
       if (errorTotal) throw errorTotal;
 
       // Préstamos activos
       const { count: activos, error: errorActivos } = await supabase
-        .from('Prestamos')
+        .from('prestamos')
         .select('*', { count: 'exact', head: true })
         .eq('Estado', 'Activo');
       
@@ -219,7 +220,7 @@ export class PrestamosService {
 
       // Suma total de montos
       const { data: montos, error: errorMontos } = await supabase
-        .from('Prestamos')
+        .from('prestamos')
         .select('Monto')
         .eq('Estado', 'Activo');
       
