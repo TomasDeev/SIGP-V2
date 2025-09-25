@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - SIGP</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug SIGP - Vercel</h1>
+        <div class="status success">
+            ✅ Vercel está sirviendo archivos estáticos correctamente
+        </div>
+        <div class="status info">
+            📍 URL actual: <span id="current-url"></span>
+        </div>
+        <div class="status info">
+            🕒 Timestamp: <span id="timestamp"></span>
+        </div>
+        <div class="status info">
+            🌐 User Agent: <span id="user-agent"></span>
+        </div>
+        
+        <h3>Instrucciones:</h3>
+        <ol>
+            <li>Si puedes ver esta página, Vercel está funcionando</li>
+            <li>El problema está en la aplicación React, no en Vercel</li>
+            <li>Revisa las variables de entorno en el dashboard de Vercel</li>
+            <li>Verifica que VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY estén configuradas</li>
+        </ol>
+        
+        <p><a href="/">← Volver a la aplicación principal</a></p>
+    </div>
+
+    <script>
+        document.getElementById('current-url').textContent = window.location.href;
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+        document.getElementById('user-agent').textContent = navigator.userAgent;
+    </script>
+</body>
+</html>
