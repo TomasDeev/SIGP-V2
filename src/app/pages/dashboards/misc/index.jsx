@@ -23,6 +23,7 @@ import {
   Today
 } from '@mui/icons-material';
 import useAuthenticatedUser from '@app/_hooks/useAuthenticatedUser';
+import WelcomeWidget from '@app/_components/widgets/WelcomeWidget/WelcomeWidget';
 
 // Tema azul de la empresa
 const blueTheme = {
@@ -229,6 +230,13 @@ const Dashboard = () => {
             Mi Dashboard
           </Typography>
         </Box>
+
+        {/* Widget de Bienvenida */}
+        <WelcomeWidget 
+          userInfo={userInfo} 
+          loading={loading} 
+          error={error} 
+        />
 
         <Grid container spacing={3}>
           {/* Columna Izquierda */}
