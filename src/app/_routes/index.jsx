@@ -101,7 +101,7 @@ const routes = [
     children: [
       {
         index: true,
-        element: <Navigate to="/widgets" replace />,
+        element: <Navigate to="/auth/login-1" replace />,
       },
       {
         path: "/dashboards/misc",
