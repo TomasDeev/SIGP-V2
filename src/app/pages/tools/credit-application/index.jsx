@@ -640,137 +640,398 @@ export default function CreditApplicationPage() {
       }
     };
 
-    const formatCurrency = (amount) => {
-      if (!amount) return 'RD$ 0';
-      return new Intl.NumberFormat('es-DO', {
-        style: 'currency',
-        currency: 'DOP',
-        minimumFractionDigits: 0
-      }).format(amount);
+    const calculateAge = (birthDate) => {
+      if (!birthDate) return 'N/A';
+      try {
+        const today = new Date();
+        const birth = new Date(birthDate);
+        let age = today.getFullYear() - birth.getFullYear();
+        const monthDiff = today.getMonth() - birth.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+          age--;
+        }
+        return age;
+      } catch {
+        return 'N/A';
+      }
     };
 
+    const mapEstadoCivil = (estadoCivil) => {
+      const mapping = {
+        1: 'Soltero/a',
+        2: 'Casado/a',
+        3: 'Divorciado/a',
+        4: 'Viudo/a',
+        5: 'Unión Libre'
+      };
+      return mapping[estadoCivil] || 'N/A';
+    };
+
+    // Preparar datos de teléfonos
+    const telefonosData = [
+      ...(clientData?.Telefono ? [{ tipo: 'Móvil', numero: clientData.Telefono, observaciones: '' }] : []),
+      ...(clientData?.Celular ? [{ tipo: 'Móvil', numero: clientData.Celular, observaciones: '' }] : []),
+      ...(clientData?.TelefonoTrabajo ? [{ tipo: 'Trabajo', numero: clientData.TelefonoTrabajo, observaciones: '' }] : [])
+    ];
+
+    // Obtener dirección principal
+    const direccionPrincipal = localizaciones && localizaciones.length > 0 ? localizaciones[0] : null;
+    const direccionCompleta = direccionPrincipal 
+      ? `${direccionPrincipal.Calle || ''} ${direccionPrincipal.Sector || ''}, ${direccionPrincipal.municipios?.Nombre || ''}, ${direccionPrincipal.municipios?.provincias?.Nombre || ''}`.trim()
+      : clientData?.Direccion || 'N/A';
+
+    // Preparar datos de familiares/referencias
+    const familiares = referencias && referencias.length > 0 ? referencias.filter(ref => 
+      ref.referenciapersonaltipos?.Nombre?.toLowerCase() === 'familiar' || ref.Relacion?.toLowerCase().includes('familiar')
+    ) : [];
+
     return `
-      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.4;">
-        <!-- Header -->
-        <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #2c3e50; padding-bottom: 20px;">
-          <h1 style="color: #2c3e50; margin: 0; font-size: 28px; font-weight: bold;">HOJA DE VIDA</h1>
-          <h2 style="color: #34495e; margin: 10px 0 0 0; font-size: 18px; font-weight: normal;">INFORMACIÓN PERSONAL Y FINANCIERA</h2>
-        </div>
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Hoja de vida de cliente</title>
+          <style>
+              body {
+                  font-family: Arial, sans-serif;
+                  font-size: 10pt;
+                  margin: 20px auto;
+                  max-width: 900px;
+                  padding: 0 40px;
+              }
 
-        <!-- Información Personal -->
-        <div style="margin-bottom: 25px;">
-          <h3 style="background-color: #3498db; color: white; padding: 8px 15px; margin: 0 0 15px 0; font-size: 16px;">📋 INFORMACIÓN PERSONAL</h3>
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold; width: 25%;">Nombres:</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.Nombres || 'N/A'}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold; width: 25%;">Apellidos:</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.Apellidos || 'N/A'}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Cédula:</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.Cedula || 'N/A'}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Fecha Nacimiento:</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${formatDate(clientData.FechaNacimiento)}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Teléfono:</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.Telefono || 'N/A'}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Celular:</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.Celular || 'N/A'}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Email:</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.Email || 'N/A'}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Nacionalidad:</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.Nacionalidad || 'N/A'}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Profesión:</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.Profesion || 'N/A'}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Lugar Nacimiento:</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.LugarNacimiento || 'N/A'}</td>
-            </tr>
-          </table>
-        </div>
+              .container {
+                  border: 1px solid #ccc;
+                  padding: 10px;
+              }
 
-        <!-- Información de Contacto -->
-        <div style="margin-bottom: 25px;">
-          <h3 style="background-color: #27ae60; color: white; padding: 8px 15px; margin: 0 0 15px 0; font-size: 16px;">📍 INFORMACIÓN DE CONTACTO</h3>
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold; width: 25%;">Dirección:</td>
-              <td style="padding: 8px; border: 1px solid #ddd; width: 75%;">${clientData.Direccion || 'N/A'}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Sector:</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.Sector || 'N/A'}</td>
-            </tr>
-          </table>
-        </div>
+              h1 {
+                  text-align: center;
+                  font-size: 14pt;
+                  margin-bottom: 15px;
+                  font-weight: normal;
+              }
 
-        <!-- Información Laboral -->
-        <div style="margin-bottom: 25px;">
-          <h3 style="background-color: #f39c12; color: white; padding: 8px 15px; margin: 0 0 15px 0; font-size: 16px;">💼 INFORMACIÓN LABORAL</h3>
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold; width: 25%;">Lugar de Trabajo:</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.LugarTrabajo || 'N/A'}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold; width: 25%;">Teléfono Trabajo:</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.TelefonoTrabajo || 'N/A'}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Dirección Trabajo:</td>
-              <td style="padding: 8px; border: 1px solid #ddd; width: 75%;" colspan="3">${clientData.DireccionTrabajo || 'N/A'}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Ingresos:</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${formatCurrency(clientData.Ingresos)}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f9fa; font-weight: bold;">Tiempo Trabajo:</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${clientData.TiempoTrabajo || 'N/A'}</td>
-            </tr>
-          </table>
-        </div>
+              table {
+                  width: 100%;
+                  border-collapse: collapse;
+                  margin-bottom: 15px;
+              }
 
-        <!-- Referencias Personales -->
-        ${referencias.length > 0 ? `
-        <div style="margin-bottom: 25px;">
-          <h3 style="background-color: #9b59b6; color: white; padding: 8px 15px; margin: 0 0 15px 0; font-size: 16px;">👥 REFERENCIAS PERSONALES</h3>
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
-            <tr style="background-color: #f8f9fa;">
-              <th style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Nombre</th>
-              <th style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Teléfono</th>
-              <th style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Relación</th>
-              <th style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Dirección</th>
-            </tr>
-            ${referencias.map(ref => `
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd;">${ref.Nombres || 'N/A'} ${ref.Apellidos || ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${ref.Telefono || 'N/A'}</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${ref.Relacion || 'N/A'}</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${ref.Direccion || 'N/A'}</td>
-            </tr>
-            `).join('')}
-          </table>
-        </div>
-        ` : ''}
+              th, td {
+                  padding: 6px 10px;
+                  text-align: left;
+                  border: 1px solid #ccc;
+              }
 
-        <!-- Información Adicional -->
-        ${clientData.Observaciones ? `
-        <div style="margin-bottom: 25px;">
-          <h3 style="background-color: #e74c3c; color: white; padding: 8px 15px; margin: 0 0 15px 0; font-size: 16px;">📝 OBSERVACIONES</h3>
-          <div style="padding: 15px; border: 1px solid #ddd; background-color: #f9f9f9; border-radius: 5px;">
-            <p style="margin: 0; line-height: 1.6;">${clientData.Observaciones}</p>
+              .header-cell {
+                  background-color: #f2f2f2;
+                  font-weight: bold;
+                  font-size: 11pt;
+                  border-top: 1px solid #ccc;
+              }
+
+              .datos-personales-table th, .datos-personales-table td {
+                  border: none;
+                  padding: 3px 10px;
+              }
+
+              .datos-personales-table {
+                  border: none;
+              }
+
+              .datos-personales-table tr:not(:last-child) td {
+                  padding-bottom: 5px;
+              }
+
+              .col-header {
+                  width: 100px;
+                  font-weight: bold;
+              }
+
+              .seccion-title {
+                  background-color: #e6e6e6;
+                  font-weight: bold;
+                  padding: 6px 10px;
+                  border: 1px solid #ccc;
+                  border-bottom: none;
+                  font-size: 11pt;
+                  text-transform: uppercase;
+              }
+
+              .datos-principales {
+                  border: 1px solid #ccc;
+              }
+
+              .datos-principales td {
+                  border: none;
+                  padding: 0;
+                  vertical-align: top;
+              }
+
+              .foto-cell {
+                  width: 120px;
+                  padding: 10px;
+                  text-align: center;
+              }
+
+              .foto {
+                  width: 100px;
+                  height: auto;
+                  border: 1px solid #000;
+              }
+              
+              .telefonos-direccion-section {
+                  width: 100%;
+                  border-collapse: collapse;
+                  margin-top: 15px;
+              }
+
+              .telefonos-direccion-section td {
+                  vertical-align: top;
+                  padding: 0;
+                  border: 1px solid #ccc;
+              }
+
+              .direccion-info {
+                  padding: 6px 10px;
+                  min-height: 40px;
+              }
+
+              .familiares-table th {
+                  text-align: center;
+                  background-color: #f2f2f2;
+                  font-weight: bold;
+              }
+
+              .familiares-table td {
+                  text-align: center;
+              }
+
+              .familiares-table td:nth-child(2) {
+                  text-align: left;
+              }
+              
+              .familiares-table th:nth-child(2) {
+                  text-align: left;
+              }
+
+              .declaracion {
+                  padding: 10px 0;
+                  font-style: italic;
+                  font-size: 9pt;
+                  line-height: 1.3;
+              }
+
+              .firma-line-container {
+                  text-align: center;
+                  margin-top: 60px;
+              }
+
+              .firma-line {
+                  display: inline-block;
+                  width: 40%;
+                  border-bottom: 1px solid #000;
+              }
+
+              .firma-nombre {
+                  margin-top: 5px;
+                  font-weight: bold;
+                  font-size: 10pt;
+              }
+
+              .fecha-impresion {
+                  position: fixed;
+                  bottom: 10px;
+                  left: 20px;
+                  font-size: 8pt;
+              }
+
+              .placeholder-image {
+                  background-color: #ddd;
+                  display: block;
+                  width: 100px;
+                  height: 120px;
+                  line-height: 120px;
+                  text-align: center;
+                  font-size: 8pt;
+                  color: #555;
+                  border: 1px solid #000;
+              }
+          </style>
+      </head>
+      <body>
+
+          <h1>Hoja de vida de cliente</h1>
+
+          <div class="container">
+              
+              <table class="datos-principales">
+                  <tr>
+                      <td class="foto-cell">
+                          ${clientData?.Foto ? 
+                            `<img src="${clientData.Foto}" alt="Foto del cliente" class="foto" />` :
+                            '<div class="placeholder-image">FOTO</div>'
+                          }
+                      </td>
+                      <td>
+                          <div class="seccion-title" style="border-bottom: 1px solid #ccc;">Datos básicos</div>
+                          <table class="datos-personales-table">
+                              <tr><td class="col-header">Nombre</td><td>${`${clientData?.Nombres || ''} ${clientData?.Apellidos || ''}`.trim() || 'N/A'}</td></tr>
+                              <tr><td class="col-header">Cédula</td><td>${clientData?.Cedula || 'N/A'}</td></tr>
+                              <tr><td class="col-header">Edad</td><td>${calculateAge(clientData?.FechaNacimiento)}</td></tr>
+                              <tr><td class="col-header">Estado Civil</td><td>${mapEstadoCivil(clientData?.EstadoCivil)}</td></tr>
+                              <tr><td class="col-header">Profesión</td><td>${clientData?.Profesion || 'N/A'}</td></tr>
+                          </table>
+                      </td>
+                  </tr>
+              </table>
+              
+              <!-- Sección Teléfonos -->
+              <table class="telefonos-direccion-section">
+                  <tr>
+                      <td style="width: 120px;">
+                          <div class="seccion-title">Teléfonos</div>
+                      </td>
+                      <td>
+                          <table style="width: 100%; border: none;">
+                              <tr style="background-color: #f2f2f2;">
+                                  <th style="border: none; padding: 3px 10px; font-weight: bold;">Tipo</th>
+                                  <th style="border: none; padding: 3px 10px; font-weight: bold;">Número</th>
+                                  <th style="border: none; padding: 3px 10px; font-weight: bold;">Observaciones</th>
+                              </tr>
+                              ${telefonosData.length > 0 ? telefonosData.map(tel => `
+                                  <tr>
+                                      <td style="border: none; padding: 3px 10px;">${tel.tipo}</td>
+                                      <td style="border: none; padding: 3px 10px;">${tel.numero}</td>
+                                      <td style="border: none; padding: 3px 10px;">${tel.observaciones}</td>
+                                  </tr>
+                              `).join('') : `
+                                  <tr>
+                                      <td style="border: none; padding: 3px 10px;">-</td>
+                                      <td style="border: none; padding: 3px 10px;">Sin teléfonos registrados</td>
+                                      <td style="border: none; padding: 3px 10px;">-</td>
+                                  </tr>
+                              `}
+                          </table>
+                      </td>
+                  </tr>
+              </table>
+
+              <!-- Sección Direcciones -->
+              <div class="seccion-title">Direcciones</div>
+              <table>
+                  <tr>
+                      <td class="direccion-info">
+                          <strong>Dirección Principal:</strong><br>
+                          ${direccionCompleta}
+                          ${direccionPrincipal?.ReferenciaLocalidad ? `<br><strong>Referencia:</strong> ${direccionPrincipal.ReferenciaLocalidad}` : ''}
+                          ${clientData?.Sector ? `<br><strong>Sector:</strong> ${clientData.Sector}` : ''}
+                      </td>
+                  </tr>
+              </table>
+
+              <!-- Sección Información Laboral -->
+              <div class="seccion-title">Información Laboral</div>
+              <table>
+                  <tr>
+                      <td style="font-weight: bold; width: 150px;">Lugar de Trabajo:</td>
+                      <td>${clientData?.LugarTrabajo || 'N/A'}</td>
+                      <td style="font-weight: bold; width: 150px;">Teléfono Trabajo:</td>
+                      <td>${clientData?.TelefonoTrabajo || 'N/A'}</td>
+                  </tr>
+                  <tr>
+                      <td style="font-weight: bold;">Dirección Trabajo:</td>
+                      <td colspan="3">${clientData?.DireccionTrabajo || 'N/A'}</td>
+                  </tr>
+                  <tr>
+                      <td style="font-weight: bold;">Ingresos:</td>
+                      <td>${clientData?.Ingresos ? new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP', minimumFractionDigits: 0 }).format(clientData.Ingresos) : 'N/A'}</td>
+                      <td style="font-weight: bold;">Tiempo Trabajo:</td>
+                      <td>${clientData?.TiempoTrabajo || 'N/A'}</td>
+                  </tr>
+              </table>
+
+              <!-- Sección Familiares -->
+              <div class="seccion-title">Familiares</div>
+              <table class="familiares-table">
+                  <tr>
+                      <th>#</th>
+                      <th>Nombre</th>
+                      <th>Dirección</th>
+                      <th>Teléfono</th>
+                  </tr>
+                  ${familiares.length > 0 ? familiares.map((familiar, index) => `
+                      <tr>
+                          <td>${index + 1}</td>
+                          <td>${familiar.Nombre || familiar.Nombres || 'N/A'}</td>
+                          <td>${familiar.Direccion || 'N/A'}</td>
+                          <td>${familiar.Telefono || 'N/A'}</td>
+                      </tr>
+                  `).join('') : `
+                      <tr>
+                          <td>-</td>
+                          <td>No hay familiares registrados</td>
+                          <td>-</td>
+                          <td>-</td>
+                      </tr>
+                  `}
+              </table>
+
+              ${referencias && referencias.length > 0 ? `
+              <!-- Sección Referencias Personales -->
+              <div class="seccion-title">Referencias Personales</div>
+              <table class="familiares-table">
+                  <tr>
+                      <th>#</th>
+                      <th>Nombre</th>
+                      <th>Relación</th>
+                      <th>Teléfono</th>
+                      <th>Dirección</th>
+                  </tr>
+                  ${referencias.map((ref, index) => `
+                      <tr>
+                          <td>${index + 1}</td>
+                          <td>${ref.Nombres || ref.Nombre || 'N/A'} ${ref.Apellidos || ''}</td>
+                          <td>${ref.Relacion || 'N/A'}</td>
+                          <td>${ref.Telefono || 'N/A'}</td>
+                          <td>${ref.Direccion || 'N/A'}</td>
+                      </tr>
+                  `).join('')}
+              </table>
+              ` : ''}
+
+              ${clientData?.Observaciones ? `
+              <!-- Sección Observaciones -->
+              <div class="seccion-title">Observaciones</div>
+              <table>
+                  <tr>
+                      <td style="padding: 10px;">${clientData.Observaciones}</td>
+                  </tr>
+              </table>
+              ` : ''}
+
+              <!-- Declaración legal -->
+              <div class="declaracion">
+                  Declaro que todos los datos contenidos en este documento corresponden a la más entera fidelidad sobre mi persona y 
+                  autorizo a esta empresa, sus afiliados, funcionarios y asociados, a consultar mis datos crediticios dentro y fuera de este país.
+              </div>
+
+              <!-- Firma -->
+              <div class="firma-line-container">
+                  <div class="firma-line"></div>
+                  <div class="firma-nombre">${`${clientData?.Nombres || ''} ${clientData?.Apellidos || ''}`.trim() || 'NOMBRE DEL CLIENTE'}</div>
+              </div>
+
           </div>
-        </div>
-        ` : ''}
 
-        <!-- Footer -->
-        <div style="margin-top: 40px; text-align: center; border-top: 2px solid #2c3e50; padding-top: 20px;">
-          <p style="margin: 0; color: #7f8c8d; font-size: 12px;">Documento generado el ${new Date().toLocaleDateString('es-DO')} a las ${new Date().toLocaleTimeString('es-DO')}</p>
-          <p style="margin: 5px 0 0 0; color: #7f8c8d; font-size: 12px;">Sistema de Gestión de Préstamos</p>
-        </div>
-      </div>
+          <div class="fecha-impresion">
+              Fecha de impresión: ${new Date().toLocaleDateString('es-DO')}
+          </div>
+
+      </body>
+      </html>
     `;
   };
 

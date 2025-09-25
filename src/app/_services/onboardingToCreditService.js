@@ -402,8 +402,6 @@ export class OnboardingToCreditService {
     if (onboardingData.datosConyuge?.nombres) {
       observaciones.push(`Cónyuge: ${onboardingData.datosConyuge.nombres} ${onboardingData.datosConyuge.apellidos || ''}`);
     }
-
-    observaciones.push(`Datos capturados desde onboarding-2 el ${new Date().toLocaleDateString('es-ES')}`);
     
     return observaciones.join('. ');
   }
@@ -425,8 +423,6 @@ export class OnboardingToCreditService {
     if (onboardingData.loanCalculation?.planDescription) {
       observaciones.push(`Plan: ${onboardingData.loanCalculation.planDescription}`);
     }
-
-    observaciones.push(`Solicitud generada desde onboarding-2 el ${new Date().toLocaleDateString('es-ES')}`);
     
     return observaciones.join('. ');
   }

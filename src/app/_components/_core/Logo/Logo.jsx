@@ -4,7 +4,7 @@ import PropTypes from "prop-types";
 const Logo = ({ mini = false, mode = "light", sx }) => {
   return (
     <Div sx={{ display: "inline-flex", ...sx }}>
-      <Link to={"/"}>
+      <Link to={"/dashboards/misc"}>
         {!mini ? (
           <img
             src="/PNG SIGP.png"
