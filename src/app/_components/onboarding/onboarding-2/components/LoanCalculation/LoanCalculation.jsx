@@ -90,6 +90,11 @@ const LoanCalculation = () => {
     aplicarGpsDesde: 0,
     aplicarGpsHasta: 0,
   });
+  const [kogarantiaData, setKogarantiaData] = useState({
+  montoKogarantia: 0,
+  aplicarKogarantiaDesde: 0,
+  aplicarKogarantiaHasta: 0,
+});
 
   // Lista de agentes/suplidores (simulada)
   const [agents] = useState([
@@ -597,6 +602,69 @@ const LoanCalculation = () => {
 
           {showAdditionalValues && (
             <Grid container spacing={2}>
+              {/* Sección de Kogarantía */}
+<Grid item xs={12}>
+  <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 'bold', color: "secondary.main" }}>
+    Kogarantía
+  </Typography>
+  <Grid container spacing={2}>
+    <Grid item xs={12} md={3}>
+      <TextField
+        fullWidth
+        size="small"
+        label="Monto Kogarantía"
+        type="number"
+        value={kogarantiaData.montoKogarantia}
+        onChange={(e) => setKogarantiaData({ ...kogarantiaData, montoKogarantia: parseFloat(e.target.value) || 0 })}
+        InputProps={{
+          startAdornment: <Typography sx={{ mr: 1, fontSize: '0.875rem' }}>RD$</Typography>,
+        }}
+      />
+    </Grid>
+    <Grid item xs={12} md={3}>
+      <TextField
+        fullWidth
+        size="small"
+        label="Aplicar Kogarantía desde cuota..."
+        type="number"
+        value={kogarantiaData.aplicarKogarantiaDesde}
+        onChange={(e) => setKogarantiaData({ ...kogarantiaData, aplicarKogarantiaDesde: parseInt(e.target.value) || 0 })}
+        inputProps={{ min: 1, max: parseInt(loanData.cantidadCuotas) || 12 }}
+      />
+    </Grid>
+    <Grid item xs={12} md={3}>
+      <TextField
+        fullWidth
+        size="small"
+        label="Aplicar Kogarantía hasta cuota..."
+        type="number"
+        value={kogarantiaData.aplicarKogarantiaHasta}
+        onChange={(e) => setKogarantiaData({ ...kogarantiaData, aplicarKogarantiaHasta: parseInt(e.target.value) || 0 })}
+        inputProps={{ min: 1, max: parseInt(loanData.cantidadCuotas) || 12 }}
+      />
+    </Grid>
+    <Grid item xs={12} md={3}>
+      <TextField
+        fullWidth
+        size="small"
+        label="Total Kogarantía"
+        value={`RD$ ${calculateTotalKogarantia().toFixed(2)}`}
+        InputProps={{
+          readOnly: true,
+        }}
+        sx={{
+          '& .MuiInputBase-input': {
+            backgroundColor: '#f5f5f5',
+            fontWeight: 'bold',
+            fontSize: '0.875rem'
+          }
+        }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+
               {/* Sección de Seguro */}
               <Grid item xs={12}>
                 <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 'bold', color: "secondary.main" }}>
