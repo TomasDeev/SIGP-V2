@@ -602,7 +602,7 @@ const LoanCalculation = () => {
 
           {showAdditionalValues && (
             <Grid container spacing={2}>
-              {/* Sección de Kogarantía */}
+              {/* Sección de Kogarantíaa */}
 <Grid item xs={12}>
   <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 'bold', color: "secondary.main" }}>
     Kogarantía
