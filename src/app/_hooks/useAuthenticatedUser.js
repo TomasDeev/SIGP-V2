@@ -50,18 +50,22 @@ const useAuthenticatedUser = () => {
           Telefono,
           IdSucursal
         `)
-        .eq('UserId', authUser.user.id)
+        .eq('UserId', authUser.userId)
         .single();
 
       if (usuariosError) {
         console.error('Error obteniendo usuario:', usuariosError);
         // Si no se encuentra el usuario en la tabla, usar datos básicos del auth
         setUserInfo({
-          authUser: authUser.user,
+          authUser: {
+            id: authUser.userId,
+            email: authUser.email,
+            user_metadata: authUser.userMeta
+          },
           usuario: null,
           empresa: null,
           sucursal: null,
-          displayName: authUser.user.email,
+          displayName: authUser.email,
           isComplete: false
         });
         return;
@@ -114,11 +118,15 @@ const useAuthenticatedUser = () => {
 
       // Construir el objeto completo de información del usuario
       const completeUserInfo = {
-        authUser: authUser.user,
+        authUser: {
+          id: authUser.userId,
+          email: authUser.email,
+          user_metadata: authUser.userMeta
+        },
         usuario: usuarios,
         empresa: empresa,
         sucursal: sucursal,
-        displayName: `${usuarios.Nombres} ${usuarios.Apellidos}`.trim() || usuarios.NombreUsuario || authUser.user.email,
+        displayName: `${usuarios.Nombres} ${usuarios.Apellidos}`.trim() || usuarios.NombreUsuario || authUser.email,
         isComplete: true
       };
 

@@ -23,6 +23,8 @@ import {
   Today
 } from '@mui/icons-material';
 import useAuthenticatedUser from '@app/_hooks/useAuthenticatedUser';
+import useCompanyInfo from '@app/_hooks/useCompanyInfo';
+import useCompanyMembers from '@app/_hooks/useCompanyMembers';
 import WelcomeWidget from '@app/_components/widgets/WelcomeWidget/WelcomeWidget';
 
 // Tema azul de la empresa
@@ -123,38 +125,53 @@ const ProjectCard = ({ title, projects, icon, color, bgColor }) => (
 );
 
 // Componente de miembro del equipo
-const TeamMember = ({ name, role, avatar }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-    <Avatar 
-      src={avatar} 
-      sx={{ 
-        width: 40, 
-        height: 40, 
-        mr: 2,
-        border: `2px solid ${blueTheme.primary.light}`
-      }} 
-    />
-    <Box sx={{ flexGrow: 1 }}>
-      <Typography 
-        variant="body1" 
+const TeamMember = ({ name, role, avatar, initials }) => {
+  const getInitials = (fullName) => {
+    if (initials) return initials;
+    const names = fullName.split(' ');
+    return names.length >= 2 
+      ? `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`.toUpperCase()
+      : fullName.charAt(0).toUpperCase();
+  };
+
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+      <Avatar 
+        src={avatar} 
         sx={{ 
-          fontWeight: 600,
-          color: blueTheme.text.primary
-        }}
+          width: 40, 
+          height: 40, 
+          mr: 2,
+          border: `2px solid ${blueTheme.primary.light}`,
+          backgroundColor: blueTheme.primary.light,
+          color: 'white',
+          fontWeight: 600
+        }} 
       >
-        {name}
-      </Typography>
-      <Typography 
-        variant="body2" 
-        sx={{ 
-          color: blueTheme.text.secondary
-        }}
-      >
-        {role}
-      </Typography>
+        {!avatar && getInitials(name)}
+      </Avatar>
+      <Box sx={{ flexGrow: 1 }}>
+        <Typography 
+          variant="body1" 
+          sx={{ 
+            fontWeight: 600,
+            color: blueTheme.text.primary
+          }}
+        >
+          {name}
+        </Typography>
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            color: blueTheme.text.secondary
+          }}
+        >
+          {role}
+        </Typography>
+      </Box>
     </Box>
-  </Box>
-);
+  );
+};
 
 // Componente de horario
 const ScheduleItem = ({ day, task, time, color }) => (
@@ -197,13 +214,67 @@ const ScheduleItem = ({ day, task, time, color }) => (
 
 const Dashboard = () => {
   const { userInfo, loading, error, isAuthenticated } = useAuthenticatedUser();
+  const { companyInfo, loading: companyLoading, error: companyError } = useCompanyInfo();
+  const { members, loading: membersLoading, error: membersError } = useCompanyMembers();
+
+  if (loading) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh',
+        backgroundColor: blueTheme.background.main 
+      }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="h6" sx={{ color: blueTheme.text.primary, mb: 2 }}>
+            Cargando dashboard...
+          </Typography>
+          <Typography variant="body2" sx={{ color: blueTheme.text.secondary }}>
+            Por favor espere un momento
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3, backgroundColor: blueTheme.background.main, minHeight: '100vh' }}>
+        <Card sx={{ maxWidth: 500, mx: 'auto', mt: 4 }}>
+          <CardContent sx={{ textAlign: 'center', p: 4 }}>
+            <Typography variant="h6" sx={{ color: 'error.main', mb: 2 }}>
+              Error de Autenticación
+            </Typography>
+            <Typography variant="body2" sx={{ color: blueTheme.text.secondary, mb: 3 }}>
+              {error.message || 'Ha ocurrido un error al cargar la información del usuario'}
+            </Typography>
+            <Button 
+              variant="contained" 
+              onClick={() => window.location.reload()}
+              sx={{ backgroundColor: blueTheme.primary.main }}
+            >
+              Reintentar
+            </Button>
+          </CardContent>
+        </Card>
+      </Box>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h6" sx={{ color: blueTheme.text.primary }}>
-          Debe iniciar sesión para acceder al dashboard
-        </Typography>
+      <Box sx={{ p: 3, backgroundColor: blueTheme.background.main, minHeight: '100vh' }}>
+        <Card sx={{ maxWidth: 500, mx: 'auto', mt: 4 }}>
+          <CardContent sx={{ textAlign: 'center', p: 4 }}>
+            <Typography variant="h6" sx={{ color: blueTheme.text.primary, mb: 2 }}>
+              Acceso Requerido
+            </Typography>
+            <Typography variant="body2" sx={{ color: blueTheme.text.secondary }}>
+              Debe iniciar sesión para acceder al dashboard
+            </Typography>
+          </CardContent>
+        </Card>
       </Box>
     );
   }
@@ -305,7 +376,9 @@ const Dashboard = () => {
                         mb: 1
                       }}
                     >
-                      SIGP Studio
+                      {companyLoading ? 'Cargando...' : 
+                       companyError ? 'Error al cargar empresa' :
+                       (companyInfo?.NombreComercial || companyInfo?.RazonSocial || 'Mi Empresa')}
                     </Typography>
                     <Typography 
                       variant="body1" 
@@ -314,7 +387,7 @@ const Dashboard = () => {
                         mb: 2
                       }}
                     >
-                      Sistema enfocado en gestión de préstamos
+                      {companyError ? 'No se pudo cargar la información de la empresa' : 'Sistema enfocado en gestión de préstamos'}
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 4 }}>
                       <Box sx={{ textAlign: 'center' }}>
@@ -322,10 +395,12 @@ const Dashboard = () => {
                           variant="h4" 
                           sx={{ 
                             fontWeight: 700,
-                            color: blueTheme.text.primary
+                            color: companyError ? 'error.main' : blueTheme.text.primary
                           }}
                         >
-                          23
+                          {companyLoading ? '...' : 
+                           companyError ? '!' :
+                           (companyInfo?.totalClientes || 0)}
                         </Typography>
                         <Typography 
                           variant="body2" 
@@ -341,10 +416,12 @@ const Dashboard = () => {
                           variant="h4" 
                           sx={{ 
                             fontWeight: 700,
-                            color: blueTheme.primary.main
+                            color: companyError ? 'error.main' : blueTheme.primary.main
                           }}
                         >
-                          #2
+                          {companyLoading ? '...' : 
+                           companyError ? '!' :
+                           (companyInfo?.totalPrestamos || 0)}
                         </Typography>
                         <Typography 
                           variant="body2" 
@@ -352,7 +429,7 @@ const Dashboard = () => {
                             color: blueTheme.text.secondary
                           }}
                         >
-                          Reputación
+                          Préstamos
                         </Typography>
                       </Box>
                       <Box sx={{ textAlign: 'center' }}>
@@ -360,10 +437,12 @@ const Dashboard = () => {
                           variant="h4" 
                           sx={{ 
                             fontWeight: 700,
-                            color: blueTheme.text.primary
+                            color: companyError ? 'error.main' : blueTheme.text.primary
                           }}
                         >
-                          17
+                          {companyLoading ? '...' : 
+                           companyError ? '!' :
+                           (companyInfo?.totalUsuarios || 0)}
                         </Typography>
                         <Typography 
                           variant="body2" 
@@ -398,26 +477,54 @@ const Dashboard = () => {
                     <MoreHoriz />
                   </IconButton>
                 </Typography>
-                <TeamMember 
-                  name="Ana García" 
-                  role="Gerente de Préstamos" 
-                  avatar="/assets/images/avatar/avatar1.jpg"
-                />
-                <TeamMember 
-                  name="Carlos Rodríguez" 
-                  role="Analista Financiero" 
-                  avatar="/assets/images/avatar/avatar2.jpg"
-                />
-                <TeamMember 
-                  name="María López" 
-                  role="Especialista en Cobranza" 
-                  avatar="/assets/images/avatar/avatar3.jpg"
-                />
-                <TeamMember 
-                  name="José Martínez" 
-                  role="Desarrollador" 
-                  avatar="/assets/images/avatar/avatar4.jpg"
-                />
+                
+                {membersLoading ? (
+                  <Box sx={{ textAlign: 'center', py: 2 }}>
+                    <Typography variant="body2" sx={{ color: blueTheme.text.secondary }}>
+                      Cargando miembros...
+                    </Typography>
+                  </Box>
+                ) : membersError ? (
+                  <Box sx={{ textAlign: 'center', py: 2 }}>
+                    <Typography variant="body2" sx={{ color: 'error.main', mb: 1 }}>
+                      Error al cargar miembros
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: blueTheme.text.secondary }}>
+                      {membersError.message || 'No se pudo obtener la información del equipo'}
+                    </Typography>
+                  </Box>
+                ) : members.length > 0 ? (
+                   members.slice(0, 4).map((member) => (
+                     <TeamMember 
+                       key={member.id}
+                       name={member.name} 
+                       role={member.role} 
+                       avatar={member.avatar}
+                       initials={member.initials}
+                     />
+                   ))
+                ) : (
+                  <Box sx={{ textAlign: 'center', py: 2 }}>
+                    <Typography variant="body2" sx={{ color: blueTheme.text.secondary }}>
+                      No hay miembros registrados
+                    </Typography>
+                  </Box>
+                )}
+                
+                {members.length > 4 && (
+                  <Box sx={{ textAlign: 'center', mt: 2 }}>
+                    <Button 
+                      variant="text" 
+                      size="small"
+                      sx={{ 
+                        color: blueTheme.primary.main,
+                        textTransform: 'none'
+                      }}
+                    >
+                      Ver todos los miembros ({members.length})
+                    </Button>
+                  </Box>
+                )}
               </CardContent>
             </Card>
           </Grid>

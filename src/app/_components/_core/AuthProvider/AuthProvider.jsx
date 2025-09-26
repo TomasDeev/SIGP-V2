@@ -77,26 +77,27 @@ export function AuthProvider({ children }) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           setIsAuthenticated(true);
-          // Actualizar cookie con la sesión actual
+          // Actualizar cookie con solo los datos esenciales (optimizado para tamaño)
           const stringify = {
             token: session.access_token,
             email: session.user.email,
-            user: session.user,
-            session: session,
+            userId: session.user.id,
+            // Solo metadatos esenciales del usuario
+            userMeta: {
+              nombres: session.user.user_metadata?.nombres,
+              apellidos: session.user.user_metadata?.apellidos,
+              nombre_usuario: session.user.user_metadata?.nombre_usuario,
+              activo: session.user.user_metadata?.activo
+            },
+            expiresAt: session.expires_at
           };
           const authUserSr = encodeURIComponent(JSON.stringify(stringify));
           setCookie("auth-user", authUserSr, 1);
         } else {
-          // Si no hay sesión en Supabase, verificar cookie local
-          let authUserSr = getCookie("auth-user");
-          if (authUserSr) {
-            // Si hay cookie pero no sesión en Supabase, limpiar cookie
-            eraseCookie("auth-user");
-          }
           setIsAuthenticated(false);
         }
       } catch (error) {
-        console.error("Error checking session:", error);
+        console.error('Error verificando sesión:', error);
         setIsAuthenticated(false);
       } finally {
         setLoading(false);
@@ -112,8 +113,15 @@ export function AuthProvider({ children }) {
         const stringify = {
           token: session.access_token,
           email: session.user.email,
-          user: session.user,
-          session: session,
+          userId: session.user.id,
+          // Solo metadatos esenciales del usuario
+          userMeta: {
+            nombres: session.user.user_metadata?.nombres,
+            apellidos: session.user.user_metadata?.apellidos,
+            nombre_usuario: session.user.user_metadata?.nombre_usuario,
+            activo: session.user.user_metadata?.activo
+          },
+          expiresAt: session.expires_at
         };
         const authUserSr = encodeURIComponent(JSON.stringify(stringify));
         setCookie("auth-user", authUserSr, 1);
