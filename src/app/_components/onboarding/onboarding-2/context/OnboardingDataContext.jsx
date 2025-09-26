@@ -264,6 +264,9 @@ export const OnboardingDataProvider = ({ children }) => {
     return onboardingData;
   }, [onboardingData]);
 
+  // Función enhancedNextStep para ser sobrescrita por componentes
+  const [enhancedNextStep, setEnhancedNextStep] = useState(null);
+
   // Valor del contexto
   const contextValue = {
     onboardingData,
@@ -275,7 +278,9 @@ export const OnboardingDataProvider = ({ children }) => {
     removeReferencia,
     updateReferencia,
     clearData,
-    getAllData
+    getAllData,
+    enhancedNextStep,
+    setEnhancedNextStep
   };
 
   return (

@@ -34,6 +34,7 @@ import AssignmentIcon from "@mui/icons-material/Assignment";
 import { useUserCompany } from "@app/_hooks/useUserCompany";
 import { useNavigate } from "react-router-dom";
 import { useOnboardingData } from "../../context/OnboardingDataContext";
+import { useOnboarding } from "@app/_components/onboarding/hooks";
 
 const LoanCalculation = () => {
   // Hook para obtener datos de la empresa del usuario
@@ -43,7 +44,10 @@ const LoanCalculation = () => {
   const navigate = useNavigate();
 
   // Hook para el contexto global de onboarding
-  const { onboardingData, updateOnboardingData } = useOnboardingData();
+  const { onboardingData, updateOnboardingData, setEnhancedNextStep } = useOnboardingData();
+  
+  // Hook para el contexto de navegación
+  const { nextStep } = useOnboarding();
   
   // Estados para el formulario
   const [selectedAgent, setSelectedAgent] = useState("");
@@ -191,6 +195,36 @@ const LoanCalculation = () => {
       }));
     }
   }, [loanData.capital, getDefaults]);
+
+  // Efecto para interceptar la navegación y guardar datos antes de cambiar de paso
+  useEffect(() => {
+    // Función para guardar todos los datos del cálculo
+    const saveLoanCalculationData = () => {
+      const loanCalculationData = {
+        loanData,
+        agentData,
+        insuranceData,
+        gpsData,
+        showAdditionalValues,
+        planDescription,
+        amortizationTable: generateAmortizationData(),
+        selectedAgent
+      };
+      
+      // Actualizar el contexto global con todos los datos
+      updateOnboardingData({
+        loanCalculation: loanCalculationData
+      });
+    };
+
+    // Establecer la función enhancedNextStep en el contexto
+    setEnhancedNextStep(saveLoanCalculationData);
+
+    // Cleanup function
+    return () => {
+      setEnhancedNextStep(null);
+    };
+  }, [loanData, agentData, insuranceData, gpsData, showAdditionalValues, planDescription, selectedAgent, updateOnboardingData, setEnhancedNextStep]);
 
   // Función para generar la descripción automática del plan de pago
   const generatePlanDescription = () => {
@@ -424,6 +458,61 @@ const LoanCalculation = () => {
     // Navegar a la página de solicitud de crédito
     navigate('/tools/credit-application');
   };
+
+  // Efecto para interceptar la navegación y guardar datos en el contexto
+  useEffect(() => {
+    const handleBeforeNextStep = async () => {
+      // Preparar los datos del préstamo para guardar en el contexto
+      const loanCalculationData = {
+        capital: parseFloat(loanData.capital) || 0,
+        tasaInteres: parseFloat(loanData.tasaInteres) || 0,
+        plazoMeses: parseInt(loanData.cantidadCuotas) || 12,
+        gastoCierre: parseFloat(loanData.gastoCierre) || 0,
+        fechaPrimerPago: loanData.fechaPrimerPago || '',
+        montoSeguro: insuranceData.montoSeguro || 0,
+        montoGps: gpsData.montoGps || 0,
+        // Datos adicionales que podrían ser útiles
+        loanData: loanData,
+        agentData: agentData,
+        insuranceData: insuranceData,
+        gpsData: gpsData,
+        showAdditionalValues: showAdditionalValues,
+        planDescription: planDescription,
+        amortizationTable: amortizationTable,
+        selectedAgent: selectedAgent
+      };
+
+      // Guardar en el contexto global
+      updateOnboardingData({
+        loanCalculation: loanCalculationData
+      });
+
+      console.log('Datos de préstamo guardados en contexto:', loanCalculationData);
+    };
+
+    // Si hay una función nextStep disponible, interceptarla temporalmente
+    if (nextStep) {
+      const originalNextStep = nextStep;
+      
+      // Reemplazar temporalmente nextStep para guardar datos antes de navegar
+      const enhancedNextStep = async () => {
+        await handleBeforeNextStep();
+        return originalNextStep();
+      };
+
+      // Actualizar la función nextStep en el contexto
+      updateOnboardingData({
+        enhancedNextStep: enhancedNextStep
+      });
+
+      // Restaurar la función original cuando el componente se desmonte
+      return () => {
+        updateOnboardingData({
+          enhancedNextStep: originalNextStep
+        });
+      };
+    }
+  }, [loanData, agentData, insuranceData, gpsData, showAdditionalValues, planDescription, amortizationTable, selectedAgent, nextStep, updateOnboardingData]);
 
   return (
     <React.Fragment>
