@@ -43,6 +43,12 @@ const InformacionLaboral = () => {
 
   const handleInputChange = (field, value) => {
     const newData = { ...datosLaborales, [field]: value };
+    
+    // Si cambian los ingresos mensuales, actualizar también el campo ingresos
+    if (field === 'ingresosMes') {
+      newData.ingresos = value;
+    }
+    
     setDatosLaborales(newData);
     updateSection('informacionLaboral', newData);
   };

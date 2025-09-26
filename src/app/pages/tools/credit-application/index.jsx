@@ -290,7 +290,15 @@ export default function CreditApplicationPage() {
   const handleMenuOption = async (option) => {
     console.log(`Opción seleccionada: ${option} para solicitud: ${selectedRow?.id} - Cliente: ${selectedRow?.cliente}`);
     
-    if (option === 'imprimir') {
+    if (option === 'ver') {
+      // Navegar a la página de detalles con el ID del préstamo
+      if (selectedRow?.id) {
+        navigate(`/tools/credit-application/${selectedRow.id}`);
+      } else {
+        console.error('No se encontró el ID del préstamo seleccionado');
+        alert('No se encontró el ID del préstamo seleccionado');
+      }
+    } else if (option === 'imprimir') {
       // Preservar los datos del cliente antes de cerrar el menú
       setClientForPrint(selectedRow);
       setPrintDialogOpen(true);

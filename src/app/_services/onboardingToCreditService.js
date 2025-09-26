@@ -13,6 +13,10 @@ export class OnboardingToCreditService {
     try {
       const { datosPersonales, direccion, informacionLaboral } = onboardingData;
 
+      // Usar direccion del contexto (que ahora incluye todos los campos)
+      const direccionData = direccion || {};
+      const infoLaboral = informacionLaboral || {};
+
       const clientData = {
         IdEmpresa: empresaId,
         Nombres: datosPersonales?.nombres || '',
@@ -21,18 +25,18 @@ export class OnboardingToCreditService {
         Telefono: datosPersonales?.telefono || '',
         Celular: datosPersonales?.celular || '',
         Email: datosPersonales?.email || '',
-        Direccion: direccion?.direccion || '',
-        Sector: direccion?.sector || '',
+        Direccion: direccionData?.calle || '',
+        Sector: direccionData?.sector || '',
         Nacionalidad: datosPersonales?.nacionalidad || 'Dominicana',
         LugarNacimiento: datosPersonales?.lugarNacimiento || '',
         FechaNacimiento: datosPersonales?.fechaNacimiento || null,
         EstadoCivil: OnboardingToCreditService.mapEstadoCivil(datosPersonales?.estadoCivil),
         Profesion: datosPersonales?.profesion || '',
-        LugarTrabajo: informacionLaboral?.empresa || '',
-        DireccionTrabajo: informacionLaboral?.direccion || '',
-        TelefonoTrabajo: informacionLaboral?.telefono || '',
-        Ingresos: OnboardingToCreditService.parseNumericValue(informacionLaboral?.ingresos, 0),
-        TiempoTrabajo: informacionLaboral?.tiempoTrabajo || '',
+        LugarTrabajo: infoLaboral?.empresa || '',
+        DireccionTrabajo: infoLaboral?.direccionEmpresa || '',
+        TelefonoTrabajo: infoLaboral?.telefonoTrabajo || '',
+        Ingresos: OnboardingToCreditService.parseNumericValue(infoLaboral?.ingresosMes || infoLaboral?.ingresos, 0),
+        TiempoTrabajo: infoLaboral?.tiempoTrabajo || '',
         Observaciones: OnboardingToCreditService.buildObservaciones(onboardingData),
         Activo: true
       };
@@ -132,6 +136,7 @@ export class OnboardingToCreditService {
         IdCuenta: clientId,
         Nombres: ref.nombres || '',
         Apellidos: ref.apellidos || '',
+        Cedula: ref.cedula || '',
         Telefono: ref.telefono || '',
         Direccion: ref.direccion || '',
         IdTipoReferenciaPersonal: OnboardingToCreditService.mapTipoReferencia(ref.tipo),
@@ -173,6 +178,10 @@ export class OnboardingToCreditService {
         throw new Error(`No se encontró el cliente con ID: ${clientId}`);
       }
 
+      // Usar direccion del contexto (que ahora incluye todos los campos)
+      const direccionData = direccion || {};
+      const infoLaboral = informacionLaboral || {};
+
       const clientData = {
         IdEmpresa: empresaId,
         Nombres: datosPersonales?.nombres || '',
@@ -181,18 +190,18 @@ export class OnboardingToCreditService {
         Telefono: datosPersonales?.telefono || '',
         Celular: datosPersonales?.celular || '',
         Email: datosPersonales?.email || '',
-        Direccion: direccion?.direccion || '',
-        Sector: direccion?.sector || '',
+        Direccion: direccionData?.calle || '',
+        Sector: direccionData?.sector || '',
         Nacionalidad: datosPersonales?.nacionalidad || 'Dominicana',
         LugarNacimiento: datosPersonales?.lugarNacimiento || '',
         FechaNacimiento: datosPersonales?.fechaNacimiento || null,
         EstadoCivil: OnboardingToCreditService.mapEstadoCivil(datosPersonales?.estadoCivil),
         Profesion: datosPersonales?.profesion || '',
-        LugarTrabajo: informacionLaboral?.empresa || '',
-        DireccionTrabajo: informacionLaboral?.direccion || '',
-        TelefonoTrabajo: informacionLaboral?.telefono || '',
-        Ingresos: OnboardingToCreditService.parseNumericValue(informacionLaboral?.ingresos, 0),
-        TiempoTrabajo: informacionLaboral?.tiempoTrabajo || '',
+        LugarTrabajo: infoLaboral?.empresa || '',
+        DireccionTrabajo: infoLaboral?.direccionEmpresa || '',
+        TelefonoTrabajo: infoLaboral?.telefonoTrabajo || '',
+        Ingresos: OnboardingToCreditService.parseNumericValue(infoLaboral?.ingresosMes || infoLaboral?.ingresos, 0),
+        TiempoTrabajo: infoLaboral?.tiempoTrabajo || '',
         Observaciones: OnboardingToCreditService.buildObservaciones(onboardingData),
         Activo: true
       };
@@ -401,6 +410,36 @@ export class OnboardingToCreditService {
 
     if (onboardingData.datosConyuge?.nombres) {
       observaciones.push(`Cónyuge: ${onboardingData.datosConyuge.nombres} ${onboardingData.datosConyuge.apellidos || ''}`);
+    }
+
+    // Información laboral adicional que no cabe en campos específicos
+    const infoLaboral = onboardingData.informacionLaboral || {};
+    if (infoLaboral.cargo) {
+      observaciones.push(`Cargo: ${infoLaboral.cargo}`);
+    }
+    if (infoLaboral.supervisor) {
+      observaciones.push(`Supervisor: ${infoLaboral.supervisor}`);
+    }
+    if (infoLaboral.quienPagara) {
+      observaciones.push(`Método de pago: ${infoLaboral.quienPagara}`);
+    }
+
+    // Dirección completa (incluyendo información adicional)
+    const direccionData = onboardingData.direccion || {};
+    if (direccionData.subsector) {
+      observaciones.push(`Subsector: ${direccionData.subsector}`);
+    }
+    if (direccionData.municipio) {
+      observaciones.push(`Municipio: ${direccionData.municipio}`);
+    }
+    if (direccionData.provincia) {
+      observaciones.push(`Provincia: ${direccionData.provincia}`);
+    }
+    if (direccionData.pais) {
+      observaciones.push(`País: ${direccionData.pais}`);
+    }
+    if (direccionData.referenciaUbicacion) {
+      observaciones.push(`Referencia ubicación: ${direccionData.referenciaUbicacion}`);
     }
     
     return observaciones.join('. ');

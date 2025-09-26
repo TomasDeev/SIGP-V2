@@ -25,6 +25,7 @@ import {
 import useAuthenticatedUser from '@app/_hooks/useAuthenticatedUser';
 import useCompanyInfo from '@app/_hooks/useCompanyInfo';
 import useCompanyMembers from '@app/_hooks/useCompanyMembers';
+import { useBranchCollaborators } from '@app/_hooks/useBranchCollaborators';
 import WelcomeWidget from '@app/_components/widgets/WelcomeWidget/WelcomeWidget';
 
 // Tema azul de la empresa
@@ -216,6 +217,7 @@ const Dashboard = () => {
   const { userInfo, loading, error, isAuthenticated } = useAuthenticatedUser();
   const { companyInfo, loading: companyLoading, error: companyError } = useCompanyInfo();
   const { members, loading: membersLoading, error: membersError } = useCompanyMembers();
+  const { collaborators, loading: collaboratorsLoading, error: collaboratorsError, totalCollaborators } = useBranchCollaborators();
 
   if (loading) {
     return (
@@ -376,9 +378,9 @@ const Dashboard = () => {
                         mb: 1
                       }}
                     >
-                      {companyLoading ? 'Cargando...' : 
-                       companyError ? 'Error al cargar empresa' :
-                       (companyInfo?.NombreComercial || companyInfo?.RazonSocial || 'Mi Empresa')}
+                      {loading ? 'Cargando...' : 
+                       error ? 'Error al cargar empresa' :
+                       (userInfo?.empresa?.NombreComercial || userInfo?.empresa?.RazonSocial || 'Mi Empresa')}
                     </Typography>
                     <Typography 
                       variant="body1" 
@@ -387,7 +389,7 @@ const Dashboard = () => {
                         mb: 2
                       }}
                     >
-                      {companyError ? 'No se pudo cargar la información de la empresa' : 'Sistema enfocado en gestión de préstamos'}
+                      {error ? 'No se pudo cargar la información de la empresa' : 'Sistema enfocado en gestión de préstamos'}
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 4 }}>
                       <Box sx={{ textAlign: 'center' }}>
@@ -395,12 +397,12 @@ const Dashboard = () => {
                           variant="h4" 
                           sx={{ 
                             fontWeight: 700,
-                            color: companyError ? 'error.main' : blueTheme.text.primary
+                            color: collaboratorsError ? 'error.main' : blueTheme.text.primary
                           }}
                         >
-                          {companyLoading ? '...' : 
-                           companyError ? '!' :
-                           (companyInfo?.totalClientes || 0)}
+                          {collaboratorsLoading ? '...' : 
+                           collaboratorsError ? '!' :
+                           totalCollaborators}
                         </Typography>
                         <Typography 
                           variant="body2" 
@@ -408,49 +410,7 @@ const Dashboard = () => {
                             color: blueTheme.text.secondary
                           }}
                         >
-                          Clientes
-                        </Typography>
-                      </Box>
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Typography 
-                          variant="h4" 
-                          sx={{ 
-                            fontWeight: 700,
-                            color: companyError ? 'error.main' : blueTheme.primary.main
-                          }}
-                        >
-                          {companyLoading ? '...' : 
-                           companyError ? '!' :
-                           (companyInfo?.totalPrestamos || 0)}
-                        </Typography>
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            color: blueTheme.text.secondary
-                          }}
-                        >
-                          Préstamos
-                        </Typography>
-                      </Box>
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Typography 
-                          variant="h4" 
-                          sx={{ 
-                            fontWeight: 700,
-                            color: companyError ? 'error.main' : blueTheme.text.primary
-                          }}
-                        >
-                          {companyLoading ? '...' : 
-                           companyError ? '!' :
-                           (companyInfo?.totalUsuarios || 0)}
-                        </Typography>
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            color: blueTheme.text.secondary
-                          }}
-                        >
-                          Miembros
+                          Colaboradores
                         </Typography>
                       </Box>
                     </Box>
@@ -460,7 +420,7 @@ const Dashboard = () => {
                   </IconButton>
                 </Box>
 
-                {/* Miembros del Equipo */}
+                {/* Colaboradores de la sucursal */}
                 <Typography 
                   variant="h6" 
                   sx={{ 
@@ -472,46 +432,46 @@ const Dashboard = () => {
                     gap: 1
                   }}
                 >
-                  <Person /> Miembros del Equipo
+                  <Person /> Colaboradores de la sucursal
                   <IconButton size="small">
                     <MoreHoriz />
                   </IconButton>
                 </Typography>
                 
-                {membersLoading ? (
+                {collaboratorsLoading ? (
                   <Box sx={{ textAlign: 'center', py: 2 }}>
                     <Typography variant="body2" sx={{ color: blueTheme.text.secondary }}>
-                      Cargando miembros...
+                      Cargando colaboradores...
                     </Typography>
                   </Box>
-                ) : membersError ? (
+                ) : collaboratorsError ? (
                   <Box sx={{ textAlign: 'center', py: 2 }}>
                     <Typography variant="body2" sx={{ color: 'error.main', mb: 1 }}>
-                      Error al cargar miembros
+                      Error al cargar colaboradores
                     </Typography>
                     <Typography variant="caption" sx={{ color: blueTheme.text.secondary }}>
-                      {membersError.message || 'No se pudo obtener la información del equipo'}
+                      {collaboratorsError || 'No se pudo obtener la información de los colaboradores'}
                     </Typography>
                   </Box>
-                ) : members.length > 0 ? (
-                   members.slice(0, 4).map((member) => (
+                ) : collaborators.length > 0 ? (
+                   collaborators.slice(0, 4).map((collaborator) => (
                      <TeamMember 
-                       key={member.id}
-                       name={member.name} 
-                       role={member.role} 
-                       avatar={member.avatar}
-                       initials={member.initials}
+                       key={collaborator.IdUsuario}
+                       name={`${collaborator.Nombres} ${collaborator.Apellidos}`} 
+                       role={collaborator.NombreUsuario} 
+                       avatar={null}
+                       initials={`${collaborator.Nombres.charAt(0)}${collaborator.Apellidos.charAt(0)}`}
                      />
                    ))
                 ) : (
                   <Box sx={{ textAlign: 'center', py: 2 }}>
                     <Typography variant="body2" sx={{ color: blueTheme.text.secondary }}>
-                      No hay miembros registrados
+                      No hay colaboradores registrados en esta sucursal
                     </Typography>
                   </Box>
                 )}
                 
-                {members.length > 4 && (
+                {collaborators.length > 4 && (
                   <Box sx={{ textAlign: 'center', mt: 2 }}>
                     <Button 
                       variant="text" 
@@ -521,7 +481,7 @@ const Dashboard = () => {
                         textTransform: 'none'
                       }}
                     >
-                      Ver todos los miembros ({members.length})
+                      Ver todos los colaboradores ({collaborators.length})
                     </Button>
                   </Box>
                 )}

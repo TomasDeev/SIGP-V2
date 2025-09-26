@@ -38,7 +38,7 @@ export class PrestamosService {
         .select(`
           *,
           empresas!inner(RazonSocial, NombreComercial, Tasa, Mora),
-          usuarios!inner(Nombre, Telefono)
+          cuentas!inner(Nombres, Apellidos, Cedula, Telefono, Celular, Email)
         `)
         .eq('IdPrestamo', id)
         .single();
@@ -117,7 +117,7 @@ export class PrestamosService {
         .from('prestamos')
         .select(`
           *,
-          usuarios!inner(Nombre)
+          cuentas!inner(Nombres, Apellidos, Cedula)
         `)
         .eq('IdEmpresa', idEmpresa)
         .order('FechaCreacion', { ascending: false });
@@ -131,23 +131,24 @@ export class PrestamosService {
   }
 
   /**
-   * Obtener préstamos por usuario
+   * Obtener préstamos por cuenta (cliente)
    */
-  static async getByUsuario(idUsuario) {
+  static async getByCuenta(idCuenta) {
     try {
       const { data, error } = await supabase
         .from('prestamos')
         .select(`
           *,
-          empresas!inner(RazonSocial, NombreComercial)
+          empresas!inner(RazonSocial, NombreComercial),
+          cuentas!inner(Nombres, Apellidos, Cedula)
         `)
-        .eq('IdUsuario', idUsuario)
+        .eq('IdCuenta', idCuenta)
         .order('FechaCreacion', { ascending: false });
       
       if (error) throw error;
       return { success: true, data };
     } catch (error) {
-      console.error('Error obteniendo préstamos por usuario:', error);
+      console.error('Error obteniendo préstamos por cuenta:', error);
       return { success: false, error: error.message };
     }
   }
@@ -162,9 +163,9 @@ export class PrestamosService {
         .select(`
           *,
           empresas!inner(RazonSocial, NombreComercial),
-          usuarios!inner(Nombre)
+          cuentas!inner(Nombres, Apellidos, Cedula)
         `)
-        .or(`NumeroContrato.ilike.%${searchTerm}%,Observaciones.ilike.%${searchTerm}%`)
+        .or(`Observaciones.ilike.%${searchTerm}%`)
         .order('FechaCreacion', { ascending: false });
       
       if (error) throw error;
@@ -185,15 +186,34 @@ export class PrestamosService {
         .select(`
           *,
           empresas!inner(RazonSocial, NombreComercial),
-          usuarios!inner(Nombre)
+          cuentas!inner(Nombres, Apellidos, Cedula)
         `)
-        .eq('Estado', estado)
+        .eq('IdEstado', estado)
         .order('FechaCreacion', { ascending: false });
       
       if (error) throw error;
       return { success: true, data };
     } catch (error) {
       console.error('Error obteniendo préstamos por estado:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Obtener tabla de amortización para un préstamo específico
+   */
+  static async getAmortizationTable(idPrestamo) {
+    try {
+      const { data, error } = await supabase
+        .from('amortizaciones')
+        .select('*')
+        .eq('IdPrestamo', idPrestamo)
+        .order('OrdenPago', { ascending: true });
+      
+      if (error) throw error;
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error obteniendo tabla de amortización:', error);
       return { success: false, error: error.message };
     }
   }
@@ -210,23 +230,23 @@ export class PrestamosService {
       
       if (errorTotal) throw errorTotal;
 
-      // Préstamos activos
+      // Préstamos activos (assuming estado 1 is active)
       const { count: activos, error: errorActivos } = await supabase
         .from('prestamos')
         .select('*', { count: 'exact', head: true })
-        .eq('Estado', 'Activo');
+        .eq('IdEstado', 1);
       
       if (errorActivos) throw errorActivos;
 
-      // Suma total de montos
-      const { data: montos, error: errorMontos } = await supabase
+      // Suma total de capital prestado
+      const { data: prestamos, error: errorMontos } = await supabase
         .from('prestamos')
-        .select('Monto')
-        .eq('Estado', 'Activo');
+        .select('CapitalPrestado')
+        .eq('IdEstado', 1);
       
       if (errorMontos) throw errorMontos;
 
-      const montoTotal = montos?.reduce((sum, prestamo) => sum + (prestamo.Monto || 0), 0) || 0;
+      const montoTotal = prestamos?.reduce((sum, prestamo) => sum + (parseFloat(prestamo.CapitalPrestado) || 0), 0) || 0;
       
       return { 
         success: true, 

@@ -22,7 +22,7 @@ import { useOnboardingData } from '../../context/OnboardingDataContext';
 
 const DireccionLocalizacion = () => {
   // Hook para el contexto global de onboarding
-  const { onboardingData, updateOnboardingData } = useOnboardingData();
+  const { onboardingData, updateSection } = useOnboardingData();
 
   const [direccion, setDireccion] = useState({
     calle: '',
@@ -36,17 +36,15 @@ const DireccionLocalizacion = () => {
 
   // Efecto para cargar datos del contexto global
   useEffect(() => {
-    if (onboardingData.direccionLocalizacion) {
-      setDireccion(onboardingData.direccionLocalizacion);
+    if (onboardingData.direccion) {
+      setDireccion(onboardingData.direccion);
     }
-  }, [onboardingData.direccionLocalizacion]);
+  }, [onboardingData.direccion]);
 
   const handleInputChange = (field, value) => {
     const newDireccion = { ...direccion, [field]: value };
     setDireccion(newDireccion);
-    updateOnboardingData({
-      direccionLocalizacion: newDireccion
-    });
+    updateSection('direccion', newDireccion);
   };
 
   return (
