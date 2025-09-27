@@ -36,7 +36,8 @@ const ReferenciasPersonales = () => {
   const [referencias, setReferencias] = useState([
     {
       id: 1,
-      nombre: '',
+      nombres: '',
+      apellidos: '',
       telefono: '',
       direccion: '',
       parentesco: ''
@@ -45,13 +46,14 @@ const ReferenciasPersonales = () => {
 
   // Cargar datos del contexto al montar el componente
   useEffect(() => {
-    if (onboardingData.referenciasPersonales && onboardingData.referenciasPersonales.length > 0) {
-      setReferencias(onboardingData.referenciasPersonales);
+    if (onboardingData.referenciasPersonales && onboardingData.referenciasPersonales.referencias && onboardingData.referenciasPersonales.referencias.length > 0) {
+      setReferencias(onboardingData.referenciasPersonales.referencias);
     }
   }, [onboardingData.referenciasPersonales]);
 
   const updateContext = (newReferencias) => {
-    updateSection('referenciasPersonales', newReferencias);
+    console.log('Actualizando contexto de referencias:', newReferencias);
+    updateSection('referenciasPersonales', { referencias: newReferencias });
   };
 
   const handleInputChange = (id, field, value) => {
@@ -63,10 +65,11 @@ const ReferenciasPersonales = () => {
   };
 
   const addReferencia = () => {
-    const newId = Math.max(...referencias.map(r => r.id)) + 1;
+    const newId = referencias.length > 0 ? Math.max(...referencias.map(r => r.id)) + 1 : 1;
     const newReferencias = [...referencias, {
       id: newId,
-      nombre: '',
+      nombres: '',
+      apellidos: '',
       telefono: '',
       direccion: '',
       parentesco: ''
@@ -113,7 +116,8 @@ const ReferenciasPersonales = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell><strong>Nombre</strong></TableCell>
+                <TableCell><strong>Nombres</strong></TableCell>
+                <TableCell><strong>Apellidos</strong></TableCell>
                 <TableCell><strong>Teléfono</strong></TableCell>
                 <TableCell><strong>Dirección</strong></TableCell>
                 <TableCell><strong>Parentesco</strong></TableCell>
@@ -127,13 +131,23 @@ const ReferenciasPersonales = () => {
                     <TextField
                       fullWidth
                       size="small"
-                      value={referencia.nombre}
-                      onChange={(e) => handleInputChange(referencia.id, 'nombre', e.target.value)}
-                      placeholder="Nombre completo"
+                      value={referencia.nombres}
+                      onChange={(e) => handleInputChange(referencia.id, 'nombres', e.target.value)}
                       InputProps={{
-                        startAdornment: <Person sx={{ mr: 1, color: 'action.active' }} />
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Person />
+                          </InputAdornment>
+                        ),
                       }}
-                      variant="outlined"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      value={referencia.apellidos}
+                      onChange={(e) => handleInputChange(referencia.id, 'apellidos', e.target.value)}
                     />
                   </TableCell>
                   <TableCell>
@@ -142,9 +156,10 @@ const ReferenciasPersonales = () => {
                       size="small"
                       value={referencia.telefono}
                       onChange={(e) => handleInputChange(referencia.id, 'telefono', e.target.value)}
-                      placeholder="Número de teléfono"
                       InputProps={{
-                        startAdornment: <Phone sx={{ mr: 1, color: 'action.active' }} />
+                        startAdornment: (
+                          <Phone sx={{ mr: 1, color: 'action.active' }} />
+                        ),
                       }}
                       variant="outlined"
                     />
@@ -155,9 +170,10 @@ const ReferenciasPersonales = () => {
                       size="small"
                       value={referencia.direccion}
                       onChange={(e) => handleInputChange(referencia.id, 'direccion', e.target.value)}
-                      placeholder="Dirección completa"
                       InputProps={{
-                        startAdornment: <LocationOn sx={{ mr: 1, color: 'action.active' }} />
+                        startAdornment: (
+                          <LocationOn sx={{ mr: 1, color: 'action.active' }} />
+                        ),
                       }}
                       variant="outlined"
                     />

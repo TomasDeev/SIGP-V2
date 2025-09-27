@@ -17,7 +17,9 @@ import {
   Person,
   AttachMoney,
   LocationOn,
-  Payment
+  Payment,
+  Phone,
+  Schedule
 } from '@mui/icons-material';
 import { JumboCard } from '@jumbo/components';
 import { OnboardingAction } from '@app/_components/onboarding/common';
@@ -31,7 +33,9 @@ const InformacionLaboral = () => {
     supervisor: '',
     ingresosMes: '',
     direccionEmpresa: '',
-    quienPagara: ''
+    quienPagara: '',
+    telefonoTrabajo: '',
+    tiempoTrabajo: ''
   });
 
   // Cargar datos del contexto al montar el componente
@@ -113,6 +117,33 @@ const InformacionLaboral = () => {
               type="number"
               InputProps={{
                 startAdornment: <AttachMoney sx={{ mr: 1, color: 'action.active' }} />
+              }}
+              variant="outlined"
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Teléfono Trabajo"
+              value={datosLaborales.telefonoTrabajo}
+              onChange={(e) => handleInputChange('telefonoTrabajo', e.target.value)}
+              InputProps={{
+                startAdornment: <Phone sx={{ mr: 1, color: 'action.active' }} />
+              }}
+              variant="outlined"
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Tiempo Trabajo"
+              value={datosLaborales.tiempoTrabajo}
+              onChange={(e) => handleInputChange('tiempoTrabajo', e.target.value)}
+              placeholder="Ej: 2 años, 6 meses"
+              InputProps={{
+                startAdornment: <Schedule sx={{ mr: 1, color: 'action.active' }} />
               }}
               variant="outlined"
             />

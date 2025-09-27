@@ -27,7 +27,7 @@ export class StorageService {
 
       // Subir archivo a Supabase Storage
       const { data, error } = await supabase.storage
-        .from('client-photos')
+        .from('cliente-fotos')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false
@@ -37,7 +37,7 @@ export class StorageService {
 
       // Obtener URL pública del archivo
       const { data: { publicUrl } } = supabase.storage
-        .from('client-photos')
+        .from('cliente-fotos')
         .getPublicUrl(filePath);
 
       return {
@@ -63,7 +63,7 @@ export class StorageService {
   static async deleteClientPhoto(filePath) {
     try {
       const { error } = await supabase.storage
-        .from('client-photos')
+        .from('cliente-fotos')
         .remove([filePath]);
 
       if (error) throw error;

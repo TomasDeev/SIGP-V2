@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Grid,
@@ -21,8 +21,10 @@ import {
 } from '@mui/icons-material';
 import { JumboCard } from '@jumbo/components';
 import { OnboardingAction } from '@app/_components/onboarding/common';
+import { useOnboardingData } from '../../context/OnboardingDataContext';
 
 const Guarantee = () => {
+  const { updateOnboardingData, getOnboardingData } = useOnboardingData();
   const [guaranteeData, setGuaranteeData] = useState({
     type: 'vehiculo', // vehiculo, hipoteca, personal, comercial
     vehicleType: '',
@@ -40,14 +42,35 @@ const Guarantee = () => {
     valorGarantia: ''
   });
 
+  // Cargar datos existentes al iniciar
+  useEffect(() => {
+    const savedData = getOnboardingData('garantia');
+    if (savedData && Object.keys(savedData).length > 0) {
+      setGuaranteeData(prev => ({ ...prev, ...savedData }));
+    }
+  }, [getOnboardingData]);
+
   const handleGuaranteeTypeChange = (event, newType) => {
     if (newType !== null) {
-      setGuaranteeData(prev => ({ ...prev, type: newType }));
+      const updatedData = { ...guaranteeData, type: newType };
+      setGuaranteeData(updatedData);
+      updateOnboardingData('garantia', updatedData);
     }
   };
 
-  const handleInputChange = (field) => (event) => {
-    setGuaranteeData(prev => ({ ...prev, [field]: event.target.value }));
+  const handleInputChange = (field, value) => {
+    const updatedData = { ...guaranteeData, [field]: value };
+    setGuaranteeData(updatedData);
+    updateOnboardingData('garantia', updatedData);
+  };
+
+  // Función para validar los campos del formulario
+  const validateFields = () => {
+    // Implementar validación según el tipo de garantía
+    if (guaranteeData.type === 'vehiculo') {
+      return !!guaranteeData.vehicleType && !!guaranteeData.marca && !!guaranteeData.modelo;
+    }
+    return !!guaranteeData.valorGarantia;
   };
 
   return (

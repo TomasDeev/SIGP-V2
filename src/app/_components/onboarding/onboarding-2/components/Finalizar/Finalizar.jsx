@@ -50,16 +50,14 @@ const Finalizar = () => {
       let result;
       
       if (isEditing) {
-        // Actualizar la solicitud de crédito existente
-        console.log('DEBUG - onboardingData completo:', onboardingData);
-        console.log('DEBUG - onboardingData.clientId:', onboardingData.clientId);
-        console.log('DEBUG - Todas las propiedades de onboardingData:', Object.keys(onboardingData));
+        // Obtener el ID del cliente desde los datos del onboarding
+        const clientId = onboardingData.datosPersonales?.idCliente;
         
-        const clientId = onboardingData.clientId;
         if (!clientId) {
-          throw new Error('No se encontró el ID del cliente para actualizar');
+          throw new Error('No se encontró el ID del cliente para actualizar la solicitud');
         }
-        console.log('DEBUG - clientId que se va a usar:', clientId);
+        
+        // Actualizar la solicitud de crédito existente
         result = await OnboardingToCreditService.updateCompleteApplication(onboardingData, clientId);
       } else {
         // Crear la solicitud de crédito completa
@@ -75,7 +73,7 @@ const Finalizar = () => {
       }
     } catch (error) {
       console.error('Error al procesar la solicitud de crédito:', error);
-      setError('Error inesperado al procesar la solicitud. Por favor, inténtelo de nuevo.');
+      setError(`Error al procesar la solicitud de crédito: ${error.message}`);
     } finally {
       setProcessing(false);
     }

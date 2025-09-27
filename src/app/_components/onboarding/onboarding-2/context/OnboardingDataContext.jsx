@@ -19,7 +19,7 @@ const getInitialData = () => {
   if (editData) {
     try {
       const parsedData = JSON.parse(editData);
-      // Limpiar localStorage después de cargar
+      // Limpiar localStorage después de cargar para evitar inconsistencias
       localStorage.removeItem('onboardingEditData');
       return parsedData;
     } catch (error) {
@@ -31,19 +31,45 @@ const getInitialData = () => {
   return {
     // Datos del cálculo de préstamo
     loanCalculation: {
-      capital: '',
-      tasaInteres: '',
-      cantidadCuotas: '',
-      gastoCierre: '',
-      fechaPrimerPago: '',
-      montoSeguro: 0,
-      montoGps: 0,
-      agente: '',
-      suplidor: ''
+      loanData: {
+        capital: "",
+        gastoCierre: "",
+        tasaInteres: "2.50",
+        cantidadCuotas: "12",
+        fechaContrato: "",
+        fechaPrimerPago: "",
+        tipoPrestamo: "personal",
+      },
+      agentData: {
+        nombre: "",
+        telefono: "",
+        direccion: "",
+      },
+      insuranceData: {
+        montoSeguro: 0,
+        numeroCuotasSeguro: 0,
+        aseguradora: "",
+        tipoSeguro: "",
+      },
+      gpsData: {
+        montoGps: 0,
+        numeroCuotasGps: 0,
+        proveedor: "",
+        tipoGps: "",
+      },
+      kogarantiaData: {
+        montoKogarantia: 0,
+        numeroCuotasKogarantia: 0,
+        tipoKogarantia: "",
+      },
+      showAdditionalValues: false,
+      planDescription: "",
+      selectedAgent: null
     },
     
     // Datos personales
     datosPersonales: {
+      idCliente: null, // Campo crítico para identificar el cliente al actualizar
       nombres: '',
       apellidos: '',
       apodo: '',
@@ -107,6 +133,24 @@ const getInitialData = () => {
     // Referencias personales
     referenciasPersonales: [],
     
+    // Garantía
+    garantia: {
+      type: 'vehiculo',
+      vehicleType: '',
+      marca: '',
+      modelo: '',
+      año: '',
+      color: '',
+      placa: '',
+      numeroChasis: '',
+      numeroMotor: '',
+      cantidadPasajeros: '',
+      numeroMatricula: '',
+      fechaMatricula: '',
+      valorComercial: '',
+      valorGarantia: ''
+    },
+    
     // Cheques
     cheques: {
         tipoPrestamo: '',
@@ -126,12 +170,16 @@ export const OnboardingDataProvider = ({ children }) => {
   // Estado para saber si estamos en modo edición
   const [isEditing, setIsEditing] = useState(false);
 
+  // Efecto para guardar en localStorage cada vez que onboardingData cambie
+  useEffect(() => {
+    localStorage.setItem('onboardingEditData', JSON.stringify(onboardingData));
+  }, [onboardingData]);
+
   // Verificar si estamos en modo edición al cargar
   useEffect(() => {
     const editMode = localStorage.getItem('onboardingEditMode');
     if (editMode === 'true') {
       setIsEditing(true);
-      localStorage.removeItem('onboardingEditMode');
     }
   }, []);
 
@@ -187,17 +235,43 @@ export const OnboardingDataProvider = ({ children }) => {
   const clearData = useCallback(() => {
     setOnboardingData({
       loanCalculation: {
-        capital: '',
-        tasaInteres: '',
-        cantidadCuotas: '',
-        gastoCierre: '',
-        fechaPrimerPago: '',
-        montoSeguro: 0,
-        montoGps: 0,
-        agente: '',
-        suplidor: ''
+        loanData: {
+          capital: "",
+          gastoCierre: "",
+          tasaInteres: "2.50",
+          cantidadCuotas: "12",
+          fechaContrato: "",
+          fechaPrimerPago: "",
+          tipoPrestamo: "personal",
+        },
+        agentData: {
+          nombre: "",
+          telefono: "",
+          direccion: "",
+        },
+        insuranceData: {
+          montoSeguro: 0,
+          numeroCuotasSeguro: 0,
+          aseguradora: "",
+          tipoSeguro: "",
+        },
+        gpsData: {
+          montoGps: 0,
+          numeroCuotasGps: 0,
+          proveedor: "",
+          tipoGps: "",
+        },
+        kogarantiaData: {
+          montoKogarantia: 0,
+          numeroCuotasKogarantia: 0,
+          tipoKogarantia: "",
+        },
+        showAdditionalValues: false,
+        planDescription: "",
+        selectedAgent: null
       },
       datosPersonales: {
+        idCliente: null, // Campo crítico para identificar el cliente al actualizar
         nombres: '',
         apellidos: '',
         apodo: '',
@@ -264,6 +338,34 @@ export const OnboardingDataProvider = ({ children }) => {
     return onboardingData;
   }, [onboardingData]);
 
+  // Función para obtener datos de una sección específica
+  const getOnboardingData = useCallback((section) => {
+    if (section) {
+      return onboardingData[section];
+    }
+    return onboardingData;
+  }, [onboardingData]);
+
+  // Función para actualizar todos los datos del onboarding
+  const updateOnboardingData = useCallback((section, newData) => {
+    if (typeof section === 'string') {
+      // Si se pasa una sección específica
+      setOnboardingData(prev => ({
+        ...prev,
+        [section]: {
+          ...prev[section],
+          ...newData
+        }
+      }));
+    } else {
+      // Si se pasan todos los datos
+      setOnboardingData(prev => ({
+        ...prev,
+        ...section
+      }));
+    }
+  }, []);
+
   // Función enhancedNextStep para ser sobrescrita por componentes
   const [enhancedNextStep, setEnhancedNextStep] = useState(null);
 
@@ -279,6 +381,8 @@ export const OnboardingDataProvider = ({ children }) => {
     updateReferencia,
     clearData,
     getAllData,
+    getOnboardingData,
+    updateOnboardingData,
     enhancedNextStep,
     setEnhancedNextStep
   };
@@ -291,3 +395,12 @@ export const OnboardingDataProvider = ({ children }) => {
 };
 
 export default OnboardingDataProvider;
+
+// Función para guardar los datos de loanCalculation
+const saveLoanCalculationData = (data) => {
+  console.log('Saving loan calculation data:', data);
+  setOnboardingData((prevData) => ({
+    ...prevData,
+    loanCalculation: data,
+  }));
+};

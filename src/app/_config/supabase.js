@@ -23,8 +23,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 // Función helper para verificar la conexión
 export const testSupabaseConnection = async () => {
   try {
-    const { data, error } = await supabase.from('_test').select('*').limit(1);
-    if (error && error.code !== 'PGRST116') { // PGRST116 = tabla no encontrada (normal)
+    const { data, error } = await supabase.from('empresas').select('IdEmpresa').limit(1);
+    if (error) {
       console.error('Error de conexión con Supabase:', error);
       return false;
     }

@@ -1,5 +1,5 @@
 import { useOnboarding } from "@app/_components/onboarding/hooks";
-import { useOnboardingData } from "@app/_components/onboarding/hooks";
+import { useOnboardingData } from "@app/_components/onboarding/onboarding-2/context/OnboardingDataContext";
 import { Button, Stack } from "@mui/material";
 const OnboardingAction = () => {
   const { prevStep, nextStep, steps, activeIndex } = useOnboarding();

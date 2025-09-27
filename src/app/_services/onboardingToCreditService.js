@@ -1,5 +1,6 @@
 import { supabaseAdmin as supabase } from '../_config/supabase-admin';
 import StorageService from './storageService';
+import { PrestamosService } from './prestamosService';
 
 /**
  * Servicio para mapear datos del onboarding-2 a solicitudes de crédito
@@ -37,6 +38,15 @@ export class OnboardingToCreditService {
         TelefonoTrabajo: infoLaboral?.telefonoTrabajo || '',
         Ingresos: OnboardingToCreditService.parseNumericValue(infoLaboral?.ingresosMes || infoLaboral?.ingresos, 0),
         TiempoTrabajo: infoLaboral?.tiempoTrabajo || '',
+        // Campos que antes se guardaban en observaciones
+        Apodo: datosPersonales?.apodo || '',
+        Sexo: datosPersonales?.sexo || '',
+        Ocupacion: datosPersonales?.ocupacion || '',
+        TipoResidencia: datosPersonales?.tipoResidencia || '',
+        Cargo: infoLaboral?.cargo || '',
+        Supervisor: infoLaboral?.supervisor || '',
+        DireccionEmpresa: infoLaboral?.direccionEmpresa || '',
+        QuienPagara: infoLaboral?.quienPagara || '',
         Observaciones: OnboardingToCreditService.buildObservaciones(onboardingData),
         Activo: true
       };
@@ -44,16 +54,20 @@ export class OnboardingToCreditService {
       const { data, error } = await supabase
         .from('cuentas')
         .insert([clientData])
-        .select()
-        .single();
+        .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error('No se pudo crear la cuenta del cliente.');
+      }
+
+      const newClient = data[0];
 
       // Si hay una foto, subirla después de crear el cliente
       if (datosPersonales?.foto) {
         const photoResult = await StorageService.uploadClientPhoto(
           datosPersonales.foto, 
-          data.IdCliente
+          newClient.IdCliente
         );
 
         if (photoResult.success) {
@@ -61,19 +75,19 @@ export class OnboardingToCreditService {
           const { error: updateError } = await supabase
             .from('cuentas')
             .update({ Foto: photoResult.data.publicUrl })
-            .eq('IdCliente', data.IdCliente);
+            .eq('IdCliente', newClient.IdCliente);
 
           if (updateError) {
             console.warn('Error actualizando URL de foto:', updateError);
           } else {
-            data.Foto = photoResult.data.publicUrl;
+            newClient.Foto = photoResult.data.publicUrl;
           }
         } else {
           console.warn('Error subiendo foto del cliente:', photoResult.error);
         }
       }
 
-      return { success: true, data };
+      return { success: true, data: newClient };
     } catch (error) {
       console.error('Error creando cuenta de cliente:', error);
       return { success: false, error: error.message };
@@ -86,18 +100,27 @@ export class OnboardingToCreditService {
   static async createLoanApplication(onboardingData, clientId, empresaId = 1) {
     try {
       const loanCalculation = onboardingData.loanCalculation || {};
+      const loanData = loanCalculation.loanData || {};
+      const insuranceData = loanCalculation.insuranceData || {};
+      const kogarantiaData = loanCalculation.kogarantiaData || {};
       
-      const loanData = {
+      // Calcular el gasto total de seguro (incluyendo Kogarantía si existe)
+      const seguroBase = OnboardingToCreditService.parseNumericValue(insuranceData.montoSeguro, 0);
+      const kogarantiaTotal = kogarantiaData.tieneKogarantia ? 
+        OnboardingToCreditService.parseNumericValue(kogarantiaData.montoTotalKogarantia, 0) : 0;
+      const gastoSeguroTotal = seguroBase + kogarantiaTotal;
+
+      const loanApplicationData = {
         IdCuenta: clientId,
         IdEmpresa: empresaId,
-        CapitalPrestado: OnboardingToCreditService.parseNumericValue(loanCalculation.capital, 0),
-        Cuotas: OnboardingToCreditService.parseNumericValue(loanCalculation.cantidadCuotas, 12),
-        Interes: OnboardingToCreditService.parseNumericValue(loanCalculation.tasaInteres, 0),
-        GastoCierre: OnboardingToCreditService.parseNumericValue(loanCalculation.gastoCierre, 0),
-        GastoSeguro: OnboardingToCreditService.parseNumericValue(loanCalculation.montoSeguro, 0),
-        FechaPrimerPago: loanCalculation.fechaPrimerPago || new Date().toISOString(),
+        CapitalPrestado: OnboardingToCreditService.parseNumericValue(loanData.capital, 0),
+        Cuotas: OnboardingToCreditService.parseNumericValue(loanData.cantidadCuotas, 12),
+        Interes: OnboardingToCreditService.parseNumericValue(loanData.tasaInteres, 0),
+        GastoCierre: OnboardingToCreditService.parseNumericValue(loanData.gastoCierre, 0),
+        GastoSeguro: gastoSeguroTotal,
+        FechaPrimerPago: loanData.fechaPrimerPago || new Date().toISOString(),
         FrecuenciaPago: 1, // Mensual por defecto
-        IdTipoPrestamo: OnboardingToCreditService.mapTipoPrestamo(onboardingData.cheques?.tipoPrestamo),
+        IdTipoPrestamo: OnboardingToCreditService.mapTipoPrestamo(loanData.tipoPrestamo),
         IdEstado: 1, // Estado "Activo" por defecto
         Moneda: 1, // Peso dominicano por defecto
         DiasGraciaMora: 0,
@@ -109,14 +132,64 @@ export class OnboardingToCreditService {
 
       const { data, error } = await supabase
         .from('prestamos')
-        .insert([loanData])
-        .select()
-        .single();
+        .insert([loanApplicationData])
+        .select();
 
       if (error) throw error;
-      return { success: true, data };
+      if (!data || data.length === 0) {
+        throw new Error('No se pudo crear la solicitud de préstamo.');
+      }
+      
+      return { success: true, data: data[0] };
     } catch (error) {
       console.error('Error creando préstamo:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Actualizar solicitud de préstamo existente
+   */
+  static async updateLoanApplication(onboardingData, loanId) {
+    try {
+      const loanCalculation = onboardingData.loanCalculation || {};
+      const loanData = loanCalculation.loanData || {};
+      const insuranceData = loanCalculation.insuranceData || {};
+      const kogarantiaData = loanCalculation.kogarantiaData || {};
+      
+      // Calcular el gasto total de seguro (incluyendo Kogarantía si existe)
+      const seguroBase = OnboardingToCreditService.parseNumericValue(insuranceData.montoSeguro, 0);
+      const kogarantiaTotal = kogarantiaData.tieneKogarantia ? 
+        OnboardingToCreditService.parseNumericValue(kogarantiaData.montoTotalKogarantia, 0) : 0;
+      const gastoSeguroTotal = seguroBase + kogarantiaTotal;
+
+      const loanUpdateData = {
+        CapitalPrestado: OnboardingToCreditService.parseNumericValue(loanData.capital, 0),
+        Cuotas: OnboardingToCreditService.parseNumericValue(loanData.cantidadCuotas, 12),
+        Interes: OnboardingToCreditService.parseNumericValue(loanData.tasaInteres, 0),
+        GastoCierre: OnboardingToCreditService.parseNumericValue(loanData.gastoCierre, 0),
+        GastoSeguro: gastoSeguroTotal,
+        FechaPrimerPago: loanData.fechaPrimerPago || new Date().toISOString(),
+        FrecuenciaPago: 1, // Mensual por defecto
+        IdTipoPrestamo: OnboardingToCreditService.mapTipoPrestamo(loanData.tipoPrestamo),
+        InteresMora: OnboardingToCreditService.parseNumericValue(loanData.interesMora, 0),
+        Observaciones: OnboardingToCreditService.buildLoanObservaciones(onboardingData)
+      };
+
+      const { data, error } = await supabase
+        .from('prestamos')
+        .update(loanUpdateData)
+        .eq('IdPrestamo', loanId)
+        .select();
+
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error('No se pudo actualizar la solicitud de préstamo.');
+      }
+      
+      return { success: true, data: data[0] };
+    } catch (error) {
+      console.error('Error actualizando préstamo:', error);
       return { success: false, error: error.message };
     }
   }
@@ -126,23 +199,39 @@ export class OnboardingToCreditService {
    */
   static async createPersonalReferences(onboardingData, clientId) {
     try {
-      const referencias = onboardingData.referenciasPersonales || [];
+      console.log('Datos de referencias personales recibidos en el servicio:', onboardingData.referenciasPersonales);
+      const referencias = onboardingData.referenciasPersonales?.referencias || [];
       
+      if (!Array.isArray(referencias)) {
+        console.error('Error: referenciasPersonales no es un array.', referencias);
+        return { success: false, error: 'El formato de las referencias personales es incorrecto.' };
+      }
+
       if (referencias.length === 0) {
         return { success: true, data: [] };
       }
 
-      const referencesData = referencias.map(ref => ({
-        IdCuenta: clientId,
-        Nombres: ref.nombres || '',
-        Apellidos: ref.apellidos || '',
-        Cedula: ref.cedula || '',
-        Telefono: ref.telefono || '',
-        Direccion: ref.direccion || '',
-        IdTipoReferenciaPersonal: OnboardingToCreditService.mapTipoReferencia(ref.tipo),
-        Parentesco: ref.parentesco || '',
-        TiempoConocerlo: ref.tiempoConocerlo || ''
-      }));
+      // Primero, crear una tabla temporal para almacenar la relación y otros datos adicionales
+      const referencesMetadata = [];
+
+      const referencesData = referencias.map(ref => {
+        // Guardar los metadatos adicionales para procesarlos después
+        referencesMetadata.push({
+          nombres: ref.nombres,
+          apellidos: ref.apellidos,
+          parentesco: ref.parentesco,
+          cedula: ref.cedula || ''
+        });
+
+        return {
+          IdCuenta: clientId,
+          Nombre: `${ref.nombres || ''} ${ref.apellidos || ''}`.trim(),
+          cedula: ref.cedula || '',
+          Telefono: ref.telefono || '',
+          Direccion: ref.direccion || '',
+          IdTipoReferenciaPersonal: OnboardingToCreditService.mapTipoReferencia(ref.parentesco) // Usar parentesco para mapear el tipo
+        };
+      });
 
       const { data, error } = await supabase
         .from('referenciaspersonales')
@@ -150,6 +239,19 @@ export class OnboardingToCreditService {
         .select();
 
       if (error) throw error;
+
+      // Guardar los metadatos adicionales en localStorage para poder recuperarlos en la hoja de vida
+      if (data && data.length > 0) {
+        const referencesWithMetadata = data.map((ref, index) => ({
+          ...ref,
+          Relacion: referencesMetadata[index]?.parentesco || '',
+          Nombres: referencesMetadata[index]?.nombres || '',
+          Apellidos: referencesMetadata[index]?.apellidos || ''
+        }));
+        
+        localStorage.setItem('referencesMetadata', JSON.stringify(referencesWithMetadata));
+      }
+
       return { success: true, data };
     } catch (error) {
       console.error('Error creando referencias personales:', error);
@@ -202,6 +304,15 @@ export class OnboardingToCreditService {
         TelefonoTrabajo: infoLaboral?.telefonoTrabajo || '',
         Ingresos: OnboardingToCreditService.parseNumericValue(infoLaboral?.ingresosMes || infoLaboral?.ingresos, 0),
         TiempoTrabajo: infoLaboral?.tiempoTrabajo || '',
+        // Campos que antes se guardaban en observaciones
+        Apodo: datosPersonales?.apodo || '',
+        Sexo: datosPersonales?.sexo || '',
+        Ocupacion: datosPersonales?.ocupacion || '',
+        TipoResidencia: datosPersonales?.tipoResidencia || '',
+        Cargo: infoLaboral?.cargo || '',
+        Supervisor: infoLaboral?.supervisor || '',
+        DireccionEmpresa: infoLaboral?.direccionEmpresa || '',
+        QuienPagara: infoLaboral?.quienPagara || '',
         Observaciones: OnboardingToCreditService.buildObservaciones(onboardingData),
         Activo: true
       };
@@ -264,7 +375,7 @@ export class OnboardingToCreditService {
   }
 
   /**
-   * Proceso completo de actualización: actualizar cliente y referencias
+   * Proceso completo de actualización: actualizar cliente, préstamo y referencias
    */
   static async updateCompleteApplication(onboardingData, clientId, empresaId = 1) {
     try {
@@ -279,16 +390,209 @@ export class OnboardingToCreditService {
       if (!referencesResult.success) {
         console.warn('Advertencia actualizando referencias:', referencesResult.error);
       }
+      
+      // 3. Buscar préstamos asociados al cliente para actualizar
+      let loanResult = { success: true, data: null };
+      let guaranteeResult = { success: true, data: null };
+      
+      const { data: prestamos, error: prestamosError } = await supabase
+        .from('prestamos')
+        .select('IdPrestamo')
+        .eq('IdCuenta', clientId)
+        .order('IdPrestamo', { ascending: false })
+        .limit(1);
+        
+      if (!prestamosError && prestamos && prestamos.length > 0) {
+        const loanId = prestamos[0].IdPrestamo;
+        
+        // 4. Actualizar datos del préstamo si hay datos de cálculo
+        if (onboardingData.loanCalculation) {
+          loanResult = await OnboardingToCreditService.updateLoanApplication(onboardingData, loanId);
+          
+          if (!loanResult.success) {
+            console.warn('Advertencia actualizando préstamo:', loanResult.error);
+          }
+        }
+        
+        // 5. Actualizar la garantía para este préstamo
+        if (onboardingData.garantia) {
+          guaranteeResult = await OnboardingToCreditService.updateGuarantee(
+            onboardingData,
+            loanId
+          );
+          
+          if (!guaranteeResult.success) {
+            console.warn('Advertencia actualizando garantía:', guaranteeResult.error);
+          }
+        }
+      }
 
       return {
         success: true,
         data: {
           client: clientResult.data,
-          references: referencesResult.data || []
+          loan: loanResult.data,
+          references: referencesResult.data || [],
+          guarantee: guaranteeResult.data
         }
       };
     } catch (error) {
       console.error('Error en proceso de actualización:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Crear garantía para un préstamo
+   */
+  static async createGuarantee(onboardingData, loanId) {
+    try {
+      const garantiaData = onboardingData.garantia || {};
+      
+      // Determinar el tipo de garantía
+      let garantiaTipo = 1; // Por defecto: Vehículo
+      switch (garantiaData.type) {
+        case 'vehiculo':
+          garantiaTipo = 1;
+          break;
+        case 'hipoteca':
+          garantiaTipo = 2;
+          break;
+        case 'personal':
+          garantiaTipo = 3;
+          break;
+        case 'comercial':
+          garantiaTipo = 4;
+          break;
+      }
+      
+      // Preparar datos de garantía
+      const guaranteeData = {
+        IdPrestamo: loanId,
+        GarantiaTipo: garantiaTipo,
+        Descripcion: garantiaData.type === 'vehiculo' 
+          ? `Vehículo ${garantiaData.marca} ${garantiaData.modelo} ${garantiaData.año}` 
+          : `Garantía tipo ${garantiaData.type}`,
+        ValorGarantia: garantiaData.type === 'vehiculo' 
+          ? OnboardingToCreditService.parseNumericValue(garantiaData.valorComercial, 0)
+          : OnboardingToCreditService.parseNumericValue(garantiaData.valorGarantia, 0),
+      };
+      
+      // Agregar datos específicos para vehículos
+      if (garantiaData.type === 'vehiculo') {
+        Object.assign(guaranteeData, {
+          Placa: garantiaData.placa || '',
+          Matricula: garantiaData.numeroMatricula || '',
+          FechaMatricula: garantiaData.fechaMatricula || null,
+          Marca: garantiaData.marca || '',
+          Modelo: garantiaData.modelo || '',
+          Color: garantiaData.color || '',
+          FabricacionFecha: garantiaData.año ? parseInt(garantiaData.año, 10) : null,
+          NumeroMotor: garantiaData.numeroMotor || '',
+          NumeroChasis: garantiaData.numeroChasis || '',
+          Tipo: garantiaData.vehicleType || ''
+        });
+      }
+      
+      const { data, error } = await supabase
+        .from('garantias')
+        .insert([guaranteeData])
+        .select();
+        
+      if (error) throw error;
+      
+      return { success: true, data: data[0] };
+    } catch (error) {
+      console.error('Error creando garantía:', error);
+      return { success: false, error: error.message };
+    }
+  }
+  
+  /**
+   * Actualizar garantía existente
+   */
+  static async updateGuarantee(onboardingData, loanId) {
+    try {
+      const garantiaData = onboardingData.garantia || {};
+      
+      // Primero verificar si existe una garantía para este préstamo
+      const { data: existingGuarantees, error: fetchError } = await supabase
+        .from('garantias')
+        .select('*')
+        .eq('IdPrestamo', loanId);
+        
+      if (fetchError) throw fetchError;
+      
+      // Determinar el tipo de garantía
+      let garantiaTipo = 1; // Por defecto: Vehículo
+      switch (garantiaData.type) {
+        case 'vehiculo':
+          garantiaTipo = 1;
+          break;
+        case 'hipoteca':
+          garantiaTipo = 2;
+          break;
+        case 'personal':
+          garantiaTipo = 3;
+          break;
+        case 'comercial':
+          garantiaTipo = 4;
+          break;
+      }
+      
+      // Preparar datos de garantía
+      const guaranteeData = {
+        GarantiaTipo: garantiaTipo,
+        Descripcion: garantiaData.type === 'vehiculo' 
+          ? `Vehículo ${garantiaData.marca} ${garantiaData.modelo} ${garantiaData.año}` 
+          : `Garantía tipo ${garantiaData.type}`,
+        ValorGarantia: garantiaData.type === 'vehiculo' 
+          ? OnboardingToCreditService.parseNumericValue(garantiaData.valorComercial, 0)
+          : OnboardingToCreditService.parseNumericValue(garantiaData.valorGarantia, 0),
+      };
+      
+      // Agregar datos específicos para vehículos
+      if (garantiaData.type === 'vehiculo') {
+        Object.assign(guaranteeData, {
+          Placa: garantiaData.placa || '',
+          Matricula: garantiaData.numeroMatricula || '',
+          FechaMatricula: garantiaData.fechaMatricula || null,
+          Marca: garantiaData.marca || '',
+          Modelo: garantiaData.modelo || '',
+          Color: garantiaData.color || '',
+          FabricacionFecha: garantiaData.año ? parseInt(garantiaData.año, 10) : null,
+          NumeroMotor: garantiaData.numeroMotor || '',
+          NumeroChasis: garantiaData.numeroChasis || '',
+          Tipo: garantiaData.vehicleType || ''
+        });
+      }
+      
+      let result;
+      
+      // Si existe una garantía, actualizarla
+      if (existingGuarantees && existingGuarantees.length > 0) {
+        const { data, error } = await supabase
+          .from('garantias')
+          .update(guaranteeData)
+          .eq('IdPrestamo', loanId)
+          .select();
+          
+        if (error) throw error;
+        result = { success: true, data: data[0], isUpdate: true };
+      } else {
+        // Si no existe, crear una nueva
+        const { data, error } = await supabase
+          .from('garantias')
+          .insert([{ ...guaranteeData, IdPrestamo: loanId }])
+          .select();
+          
+        if (error) throw error;
+        result = { success: true, data: data[0], isUpdate: false };
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error actualizando garantía:', error);
       return { success: false, error: error.message };
     }
   }
@@ -318,12 +622,38 @@ export class OnboardingToCreditService {
         console.warn('Advertencia creando referencias:', referencesResult.error);
       }
 
+      // 4. Crear tabla de amortización
+      let amortizationResult = { success: true, data: [] };
+      if (onboardingData.loanCalculation?.amortizationTable && loanResult.data?.IdPrestamo) {
+        amortizationResult = await PrestamosService.createAmortizationTable(
+          loanResult.data.IdPrestamo,
+          onboardingData.loanCalculation.amortizationTable
+        );
+        if (!amortizationResult.success) {
+          console.warn('Advertencia creando amortizaciones:', amortizationResult.error);
+        }
+      }
+      
+      // 5. Crear garantía
+      let guaranteeResult = { success: true, data: null };
+      if (onboardingData.garantia && loanResult.data?.IdPrestamo) {
+        guaranteeResult = await OnboardingToCreditService.createGuarantee(
+          onboardingData,
+          loanResult.data.IdPrestamo
+        );
+        if (!guaranteeResult.success) {
+          console.warn('Advertencia creando garantía:', guaranteeResult.error);
+        }
+      }
+
       return {
         success: true,
         data: {
           client: clientResult.data,
           loan: loanResult.data,
-          references: referencesResult.data || []
+          references: referencesResult.data || [],
+          amortization: amortizationResult.data || [],
+          guarantee: guaranteeResult.data
         }
       };
     } catch (error) {
@@ -382,16 +712,71 @@ export class OnboardingToCreditService {
   }
 
   /**
-   * Mapear tipo de referencia personal
+   * Mapear tipo de referencia a ID
    */
   static mapTipoReferencia(tipo) {
-    const mapping = {
-      'familiar': 1,
-      'laboral': 2,
-      'personal': 3,
-      'comercial': 4
-    };
-    return mapping[tipo?.toLowerCase()] || 3; // Personal por defecto
+    // Relaciones familiares
+    const relacionesFamiliares = [
+      'padre', 'madre', 'hermano', 'hermana', 'hermano/a', 
+      'hijo', 'hija', 'hijo/a', 'esposo', 'esposa', 'esposo/a',
+      'tío', 'tía', 'tío/a', 'primo', 'prima', 'primo/a',
+      'abuelo', 'abuela', 'abuelo/a', 'sobrino', 'sobrina', 'sobrino/a'
+    ];
+
+    // Relaciones laborales
+    const relacionesLaborales = [
+      'compañero de trabajo', 'jefe', 'supervisor', 'colega', 'empleado'
+    ];
+
+    // Relaciones vecinales
+    const relacionesVecinales = [
+      'vecino', 'vecina', 'vecino/a'
+    ];
+
+    // Relaciones comerciales
+    const relacionesComerciales = [
+      'cliente', 'proveedor', 'socio', 'socia'
+    ];
+
+    if (!tipo) return 3; // Personal por defecto
+
+    const tipoLower = tipo.toLowerCase();
+
+    // Verificar si es una relación familiar
+    if (relacionesFamiliares.some(rel => tipoLower.includes(rel))) {
+      return 1; // Familiar
+    }
+    
+    // Verificar si es una relación laboral
+    if (relacionesLaborales.some(rel => tipoLower.includes(rel))) {
+      return 2; // Laboral
+    }
+    
+    // Verificar si es una relación comercial
+    if (relacionesComerciales.some(rel => tipoLower.includes(rel))) {
+      return 4; // Comercial
+    }
+    
+    // Verificar si es una relación vecinal
+    if (relacionesVecinales.some(rel => tipoLower.includes(rel))) {
+      return 5; // Vecinal
+    }
+
+    // Verificar el tipo exacto
+    switch (tipoLower) {
+      case 'familiar':
+        return 1;
+      case 'laboral':
+        return 2;
+      case 'personal':
+        return 3;
+      case 'comercial':
+        return 4;
+      case 'vecinal':
+        return 5;
+      default:
+        return 3; // Personal por defecto
+    }
   }
 
   /**
@@ -400,31 +785,12 @@ export class OnboardingToCreditService {
   static buildObservaciones(onboardingData) {
     const observaciones = [];
     
-    if (onboardingData.datosPersonales?.apodo) {
-      observaciones.push(`Apodo: ${onboardingData.datosPersonales.apodo}`);
-    }
-    
-    if (onboardingData.datosPersonales?.tipoResidencia) {
-      observaciones.push(`Tipo de residencia: ${onboardingData.datosPersonales.tipoResidencia}`);
-    }
-
+    // Solo incluir información del cónyuge y datos adicionales que no tienen columnas específicas
     if (onboardingData.datosConyuge?.nombres) {
       observaciones.push(`Cónyuge: ${onboardingData.datosConyuge.nombres} ${onboardingData.datosConyuge.apellidos || ''}`);
     }
 
-    // Información laboral adicional que no cabe en campos específicos
-    const infoLaboral = onboardingData.informacionLaboral || {};
-    if (infoLaboral.cargo) {
-      observaciones.push(`Cargo: ${infoLaboral.cargo}`);
-    }
-    if (infoLaboral.supervisor) {
-      observaciones.push(`Supervisor: ${infoLaboral.supervisor}`);
-    }
-    if (infoLaboral.quienPagara) {
-      observaciones.push(`Método de pago: ${infoLaboral.quienPagara}`);
-    }
-
-    // Dirección completa (incluyendo información adicional)
+    // Información adicional de dirección que no tiene columnas específicas
     const direccionData = onboardingData.direccion || {};
     if (direccionData.subsector) {
       observaciones.push(`Subsector: ${direccionData.subsector}`);

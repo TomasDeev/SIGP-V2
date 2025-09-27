@@ -51,14 +51,18 @@ export default function LoanCalculatorPage() {
   // Estados para seguro y GPS con validaciones condicionales
   const [tieneSeguro, setTieneSeguro] = useState(false);
   const [tieneGPS, setTieneGPS] = useState(false);
+  const [tieneKogarantia, setTieneKogarantia] = useState(false);
   const [montoTotalSeguro, setMontoTotalSeguro] = useState("0");
   const [cuotasSeguro, setCuotasSeguro] = useState("0");
   const [montoTotalGPS, setMontoTotalGPS] = useState("0");
   const [cuotasGPS, setCuotasGPS] = useState("0");
+  const [montoTotalKogarantia, setMontoTotalKogarantia] = useState("0");
+  const [cuotasKogarantia, setCuotasKogarantia] = useState("0");
   
   // Estados calculados para seguro y GPS mensuales
   const [seguroMensual, setSeguroMensual] = useState("0");
   const [gpsMensual, setGpsMensual] = useState("0");
+  const [kogarantiaMensual, setKogarantiaMensual] = useState("0");
   
   // Estados para los resultados
   const [amortizationTable, setAmortizationTable] = useState([]);
@@ -97,6 +101,17 @@ export default function LoanCalculatorPage() {
     }
   }, [tieneGPS, montoTotalGPS, cuotasGPS]);
 
+  useEffect(() => {
+    if (tieneKogarantia && montoTotalKogarantia && cuotasKogarantia) {
+      const montoNum = parseFloat(montoTotalKogarantia) || 0;
+      const cuotasNum = parseFloat(cuotasKogarantia) || 1;
+      const kogarantiaMensualCalculado = cuotasNum > 0 ? (montoNum / cuotasNum).toFixed(2) : "0";
+      setKogarantiaMensual(kogarantiaMensualCalculado);
+    } else {
+      setKogarantiaMensual("0");
+    }
+  }, [tieneKogarantia, montoTotalKogarantia, cuotasKogarantia]);
+
   const calculateLoan = () => {
     setError("");
     
@@ -113,6 +128,7 @@ export default function LoanCalculatorPage() {
     const roundMultipleNum = parseFloat(roundMultiple) || 10;
     const seguroNum = parseFloat(seguroMensual) || 0;
     const gpsNum = parseFloat(gpsMensual) || 0;
+    const kogarantiaNum = parseFloat(kogarantiaMensual) || 0;
 
     if (capitalNum <= 0 || plazoNum <= 0 || tasaNum < 0 || cierreNum < 0) {
       setError("Por favor, ingrese valores válidos");
@@ -149,18 +165,18 @@ export default function LoanCalculatorPage() {
         cierreCuota = roundTo2Decimals(cierreNum - totalCierrePagado);
         
         // Cuota preliminar para la última cuota
-        const cuotaPreliminar = capitalCuota + cierreCuota + interesBase + seguroNum + gpsNum;
+        const cuotaPreliminar = capitalCuota + cierreCuota + interesBase + seguroNum + gpsNum + kogarantiaNum;
         cuotaMostrada = roundToNearestMultiple(cuotaPreliminar, roundMultipleNum);
-        interesMostrado = roundTo2Decimals(cuotaMostrada - capitalCuota - cierreCuota - seguroNum - gpsNum);
+        interesMostrado = roundTo2Decimals(cuotaMostrada - capitalCuota - cierreCuota - seguroNum - gpsNum - kogarantiaNum);
       } else {
         // Cuotas regulares (1 a plazo_meses - 1)
         capitalCuota = roundTo2Decimals(capitalExacto);
         cierreCuota = roundTo2Decimals(cierreExacto);
         
         // Cuota preliminar
-        const cuotaPreliminar = capitalCuota + cierreCuota + interesBase + seguroNum + gpsNum;
+        const cuotaPreliminar = capitalCuota + cierreCuota + interesBase + seguroNum + gpsNum + kogarantiaNum;
         cuotaMostrada = roundToNearestMultiple(cuotaPreliminar, roundMultipleNum);
-        interesMostrado = roundTo2Decimals(cuotaMostrada - capitalCuota - cierreCuota - seguroNum - gpsNum);
+        interesMostrado = roundTo2Decimals(cuotaMostrada - capitalCuota - cierreCuota - seguroNum - gpsNum - kogarantiaNum);
       }
       
       totalCapitalPagado += capitalCuota;
@@ -173,6 +189,7 @@ export default function LoanCalculatorPage() {
         cierre: cierreCuota,
         seguro: seguroNum,
         gps: gpsNum,
+        kogarantia: kogarantiaNum,
         capital: capitalCuota,
         interes: interesMostrado,
       });
@@ -182,9 +199,10 @@ export default function LoanCalculatorPage() {
     const totalInteresCalculado = tabla.reduce((sum, row) => sum + row.interes, 0);
     const totalSeguroCalculado = seguroNum * plazoNum;
     const totalGPSCalculado = gpsNum * plazoNum;
+    const totalKogarantiaCalculado = kogarantiaNum * plazoNum;
     const totalCuotas = tabla.reduce((sum, row) => sum + row.cuotaTotal, 0);
     
-    const granTotalCalculado = capitalNum + totalInteresCalculado + cierreNum + totalSeguroCalculado + totalGPSCalculado;
+    const granTotalCalculado = capitalNum + totalInteresCalculado + cierreNum + totalSeguroCalculado + totalGPSCalculado + totalKogarantiaCalculado;
 
     setAmortizationTable(tabla);
     setSummary({
@@ -196,6 +214,7 @@ export default function LoanCalculatorPage() {
       totalCierre: cierreNum,
       totalSeguro: totalSeguroCalculado,
       totalGPS: totalGPSCalculado,
+      totalKogarantia: totalKogarantiaCalculado,
       totalCuotas: totalCuotas,
       granTotal: granTotalCalculado,
     });
@@ -211,12 +230,16 @@ export default function LoanCalculatorPage() {
     setRoundMultiple("5");
     setTieneSeguro(false);
     setTieneGPS(false);
+    setTieneKogarantia(false);
     setMontoTotalSeguro("0");
     setCuotasSeguro("0");
     setMontoTotalGPS("0");
     setCuotasGPS("0");
+    setMontoTotalKogarantia("0");
+    setCuotasKogarantia("0");
     setSeguroMensual("0");
     setGpsMensual("0");
+    setKogarantiaMensual("0");
     setAmortizationTable([]);
     setSummary(null);
     setError("");
@@ -232,17 +255,25 @@ export default function LoanCalculatorPage() {
       fechaInicial,
       tieneSeguro,
       tieneGPS,
+      tieneKogarantia,
       montoTotalSeguro: parseFloat(montoTotalSeguro) || 0,
       cuotasSeguro: parseInt(cuotasSeguro) || 0,
       montoTotalGPS: parseFloat(montoTotalGPS) || 0,
       cuotasGPS: parseInt(cuotasGPS) || 0,
+      montoTotalKogarantia: parseFloat(montoTotalKogarantia) || 0,
+      cuotasKogarantia: parseInt(cuotasKogarantia) || 0,
       seguroMensual: parseFloat(seguroMensual) || 0,
       gpsMensual: parseFloat(gpsMensual) || 0,
+      kogarantiaMensual: parseFloat(kogarantiaMensual) || 0,
       summary,
       amortizationTable
     };
 
     localStorage.setItem('loanCalculationData', JSON.stringify(loanData));
+    
+    // Limpiar el modo de edición del localStorage
+    localStorage.removeItem('onboardingEditMode');
+    localStorage.removeItem('onboardingEditData');
     
     // Navegar al onboarding-2 para llenar los datos del préstamo
     navigate('/onboarding-2');
@@ -724,6 +755,71 @@ export default function LoanCalculatorPage() {
                   />
                   <Typography variant="body2" color="text.secondary">
                     GPS mensual: {formatCurrency(parseFloat(gpsMensual) || 0)}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </Grid>
+
+          {/* Sección de Kogarantía */}
+          <Grid item xs={12} md={6}>
+            <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 3, p: 3, backgroundColor: '#fafafa' }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={tieneKogarantia}
+                    onChange={(e) => setTieneKogarantia(e.target.checked)}
+                    sx={{ color: 'primary.main', '&.Mui-checked': { color: 'primary.main' } }}
+                  />
+                }
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <SecurityIcon sx={{ color: 'primary.main' }} />
+                    <Typography>Incluir Kogarantía</Typography>
+                  </Box>
+                }
+                sx={{ mb: 2 }}
+              />
+
+              {tieneKogarantia && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <TextField
+                    fullWidth
+                    label="Monto Total de Kogarantía"
+                    value={montoTotalKogarantia}
+                    onChange={(e) => setMontoTotalKogarantia(e.target.value)}
+                    type="number"
+                    variant="outlined"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        backgroundColor: '#f8f9fa',
+                      },
+                    }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SecurityIcon sx={{ color: '#20b2aa' }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                  <TextField
+                    fullWidth
+                    label="Cuotas de Kogarantía"
+                    value={cuotasKogarantia}
+                    onChange={(e) => setCuotasKogarantia(e.target.value)}
+                    type="number"
+                    variant="outlined"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        backgroundColor: '#f8f9fa',
+                      },
+                    }}
+                  />
+                  <Typography variant="body2" color="text.secondary">
+                    Kogarantía mensual: {formatCurrency(parseFloat(kogarantiaMensual) || 0)}
                   </Typography>
                 </Box>
               )}

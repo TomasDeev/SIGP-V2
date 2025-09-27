@@ -1,60 +1,22 @@
-import React, { useState, useEffect } from "react";
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  FormControl,
-  FormControlLabel,
-  Grid,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-  Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Checkbox,
-} from "@mui/material";
-import { OnboardingAction } from "@app/_components/onboarding/common";
-import { JumboCard } from "@jumbo/components";
-import AddIcon from "@mui/icons-material/Add";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import AssignmentIcon from "@mui/icons-material/Assignment";
-import { useUserCompany } from "@app/_hooks/useUserCompany";
-import { useNavigate } from "react-router-dom";
-import { useOnboardingData } from "../../context/OnboardingDataContext";
-import { useOnboarding } from "@app/_components/onboarding/hooks";
+import React from 'react';
+import { JumboCard } from '@jumbo/components';
+import { OnboardingAction } from '@app/_components/onboarding/common';
 
-const LoanCalculation = () => {
-  // Hook para obtener datos de la empresa del usuario
-  const { companyData, getDefaults, loading: companyLoading } = useUserCompany();
-  
-  // Hook para navegación
-  const navigate = useNavigate();
+import { Box, Checkbox, Divider, TextField, Button, FormControl, InputLabel, MenuItem, CircularProgress, Typography, Grid, Paper, Select, FormControlLabel, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableHead, TableRow, TableContainer } from '@mui/material';
 
-  // Hook para el contexto global de onboarding
+import { Add as AddIcon, Visibility as VisibilityIcon, Assignment as AssignmentIcon } from '@mui/icons-material';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+import { useOnboardingData } from '../../context/OnboardingDataContext';
+
+const LoanCalculation = ({ companyData, companyLoading, getDefaults, navigate }) => {
   const { onboardingData, updateOnboardingData, setEnhancedNextStep } = useOnboardingData();
-  
-  // Hook para el contexto de navegación
-  const { nextStep } = useOnboarding();
-  
-  // Estados para el formulario
-  const [selectedAgent, setSelectedAgent] = useState("");
+  const [loading, setLoading] = useState(true);
   const [openAgentDialog, setOpenAgentDialog] = useState(false);
   const [openAmortizationDialog, setOpenAmortizationDialog] = useState(false);
-  
-  // Estados para datos del agente/suplidor
+
+  // Estado para el agente
   const [agentData, setAgentData] = useState({
     cedula: "",
     nombre: "",
@@ -62,7 +24,8 @@ const LoanCalculation = () => {
     direccion: "",
   });
 
-  // Estados para datos básicos del préstamo - inicializar con valores por defecto de la empresa
+  // Estado para el cálculo
+  // Inicializar con valores por defecto de la empresa
   const [loanData, setLoanData] = useState({
     capital: "",
     gastoCierre: "",
@@ -70,6 +33,7 @@ const LoanCalculation = () => {
     cantidadCuotas: "12", // Se actualizará con los valores de la empresa
     fechaContrato: "",
     fechaPrimerPago: "",
+    tipoPrestamo: "personal", // Valor por defecto
   });
 
   // Estado para la descripción automática del plan de pago
@@ -86,19 +50,25 @@ const LoanCalculation = () => {
   const [showAdditionalValues, setShowAdditionalValues] = useState(false);
   const [insuranceData, setInsuranceData] = useState({
     montoSeguro: 0,
+    numeroCuotasSeguro: 0,
     aplicarSeguroDesde: 0,
     aplicarSeguroHasta: 0,
   });
   const [gpsData, setGpsData] = useState({
     montoGps: 0,
+    numeroCuotasGps: 0,
     aplicarGpsDesde: 0,
     aplicarGpsHasta: 0,
   });
   const [kogarantiaData, setKogarantiaData] = useState({
-  montoKogarantia: 0,
-  aplicarKogarantiaDesde: 0,
-  aplicarKogarantiaHasta: 0,
-});
+    montoKogarantia: 0,
+    numeroCuotasKogarantia: 0,
+    aplicarKogarantiaDesde: 1,
+    aplicarKogarantiaHasta: 12
+  });
+
+  // Estado para el agente seleccionado
+  const [selectedAgent, setSelectedAgent] = useState("");
 
   // Lista de agentes/suplidores (simulada)
   const [agents] = useState([
@@ -107,9 +77,113 @@ const LoanCalculation = () => {
     { id: 3, name: "Carlos López", cedula: "001-3456789-0" },
   ]);
 
+  // Funciones auxiliares para redondeo (igual que en loan-calculator)
+  const roundToNearestMultiple = (value, multiple) => {
+    const remainder = value % multiple;
+    if (remainder === 0) return value;
+    
+    // Si hay empate, redondear hacia arriba
+    if (remainder >= multiple / 2) {
+      return value + (multiple - remainder);
+    } else {
+      return value - remainder;
+    }
+  };
+
+  const roundTo2Decimals = (value) => {
+    return Math.round(value * 100) / 100;
+  };
+
+  // Función para generar datos de amortización (usando la misma lógica que loan-calculator)
+  const generateAmortizationData = () => {
+    const capitalNum = parseFloat(loanData.capital) || 0;
+    const plazoNum = parseInt(loanData.cantidadCuotas) || 12;
+    const tasaNum = parseFloat(loanData.tasaInteres) || 0;
+    const cierreNum = parseFloat(loanData.gastoCierre) || 0;
+    const roundMultipleNum = 10; // Valor por defecto para redondeo
+    const seguroNum = parseFloat(insuranceData.montoSeguro) || 0;
+    const gpsNum = parseFloat(gpsData.montoGps) || 0;
+    const kogarantiaNum = parseFloat(kogarantiaData.montoKogarantia) || 0;
+    
+    if (capitalNum === 0) return [];
+
+    // Cálculos según las reglas del sistema de referencia (igual que loan-calculator)
+    
+    // 1. Base de interés: (capital + cierre_total) * (tasa_mensual_percent / 100)
+    const interesBase = (capitalNum + cierreNum) * (tasaNum / 100);
+    
+    // 2. Capital por cuota (exacto)
+    const capitalExacto = capitalNum / plazoNum;
+    
+    // 3. Cierre por cuota (exacto)
+    const cierreExacto = cierreNum / plazoNum;
+
+    // Crear tabla de amortización
+    const tabla = [];
+    const fechaBase = new Date(loanData.fechaContrato || new Date());
+    
+    let totalCapitalPagado = 0;
+    let totalCierrePagado = 0;
+
+    for (let i = 1; i <= plazoNum; i++) {
+      const fechaVencimiento = new Date(fechaBase);
+      fechaVencimiento.setMonth(fechaBase.getMonth() + i);
+      
+      // Determinar si esta cuota debe incluir seguro, GPS o kogarantía
+      const incluirSeguro = i >= (insuranceData.aplicarSeguroDesde || 1) && i <= (insuranceData.aplicarSeguroHasta || plazoNum) && insuranceData.montoSeguro > 0;
+      const incluirGps = i >= (gpsData.aplicarGpsDesde || 1) && i <= (gpsData.aplicarGpsHasta || plazoNum) && gpsData.montoGps > 0;
+      const incluirKogarantia = i >= (kogarantiaData.aplicarKogarantiaDesde || 1) && i <= (kogarantiaData.aplicarKogarantiaHasta || plazoNum) && kogarantiaData.montoKogarantia > 0;
+      
+      // Calcular valores para esta cuota
+      const seguroCuota = incluirSeguro ? seguroNum : 0;
+      const gpsCuota = incluirGps ? gpsNum : 0;
+      const kogarantiaCuota = incluirKogarantia ? kogarantiaNum : 0;
+      
+      let capitalCuota, cierreCuota, cuotaMostrada, interesMostrado;
+      
+      if (i === plazoNum) {
+        // Última cuota: ajuste final
+        capitalCuota = roundTo2Decimals(capitalNum - totalCapitalPagado);
+        cierreCuota = roundTo2Decimals(cierreNum - totalCierrePagado);
+        
+        // Cuota preliminar para la última cuota
+        const cuotaPreliminar = capitalCuota + cierreCuota + interesBase + seguroCuota + gpsCuota + kogarantiaCuota;
+        cuotaMostrada = roundToNearestMultiple(cuotaPreliminar, roundMultipleNum);
+        interesMostrado = roundTo2Decimals(cuotaMostrada - capitalCuota - cierreCuota - seguroCuota - gpsCuota - kogarantiaCuota);
+      } else {
+        // Cuotas regulares (1 a plazo_meses - 1)
+        capitalCuota = roundTo2Decimals(capitalExacto);
+        cierreCuota = roundTo2Decimals(cierreExacto);
+        
+        // Cuota preliminar
+        const cuotaPreliminar = capitalCuota + cierreCuota + interesBase + seguroCuota + gpsCuota + kogarantiaCuota;
+        cuotaMostrada = roundToNearestMultiple(cuotaPreliminar, roundMultipleNum);
+        interesMostrado = roundTo2Decimals(cuotaMostrada - capitalCuota - cierreCuota - seguroCuota - gpsCuota - kogarantiaCuota);
+      }
+      
+      totalCapitalPagado += capitalCuota;
+      totalCierrePagado += cierreCuota;
+      
+      tabla.push({
+        cuota: i,
+        cuotaMensual: cuotaMostrada.toFixed(2),
+        capital: capitalCuota.toFixed(2),
+        interes: interesMostrado.toFixed(2),
+        saldoPendiente: (capitalNum - totalCapitalPagado).toFixed(2),
+        cierre: cierreCuota.toFixed(2),
+        seguro: seguroCuota.toFixed(2),
+        gps: gpsCuota.toFixed(2),
+        kogarantia: kogarantiaCuota.toFixed(2),
+        fechaVencimiento: fechaVencimiento.toLocaleDateString('es-ES'),
+      });
+    }
+
+    return tabla;
+  };
+
   // Efecto para cargar datos del contexto global
   useEffect(() => {
-    if (onboardingData.loanCalculation) {
+    if (onboardingData && onboardingData.loanCalculation) {
       const { loanCalculation } = onboardingData;
       
       if (loanCalculation.loanData) {
@@ -123,113 +197,103 @@ const LoanCalculation = () => {
       if (loanCalculation.insuranceData) {
         setInsuranceData(loanCalculation.insuranceData);
       }
+
+      if (loanCalculation.gpsData) {
+        setGpsData(loanCalculation.gpsData);
+      }
+
+      if (loanCalculation.kogarantiaData) {
+        setKogarantiaData(loanCalculation.kogarantiaData);
+      }
       
       if (loanCalculation.showAdditionalValues !== undefined) {
         setShowAdditionalValues(loanCalculation.showAdditionalValues);
       }
+
+      if (loanCalculation.selectedAgent) {
+        setSelectedAgent(loanCalculation.selectedAgent);
+      }
     }
-  }, [onboardingData.loanCalculation]);
+    setLoading(false);
+  }, [onboardingData?.loanCalculation]);
 
   // Efecto para cargar automáticamente los valores por defecto de la empresa
+  // Solo si no hay datos previos en el contexto
   useEffect(() => {
-    if (companyData && !companyLoading) {
-      const defaults = getDefaults();
-      setLoanData(prev => ({
-        ...prev,
-        tasaInteres: defaults.interestRate.toString(),
-        cantidadCuotas: defaults.installments.toString(),
-      }));
-    }
-  }, [companyData, companyLoading, getDefaults]);
-
-  // Efecto para cargar datos del localStorage cuando se navega desde la calculadora de préstamos
-  useEffect(() => {
-    try {
-      const savedLoanData = localStorage.getItem('loanCalculationData');
-      if (savedLoanData) {
-        const parsedData = JSON.parse(savedLoanData);
-        
-        // Mapear los datos de la calculadora a los campos del onboarding-2
+    if (companyData && !companyLoading && typeof getDefaults === 'function') {
+      // Solo establecer valores por defecto si no hay datos previos en el contexto
+      const hasExistingData = onboardingData?.loanCalculation?.loanData?.tasaInteres || 
+                             onboardingData?.loanCalculation?.loanData?.cantidadCuotas;
+      
+      if (!hasExistingData) {
+        const defaults = getDefaults();
         setLoanData(prev => ({
           ...prev,
-          capital: parsedData.capital?.toString() || "",
-          gastoCierre: parsedData.montoCierre?.toString() || "",
-          tasaInteres: parsedData.tasaInteresMensual?.toString() || prev.tasaInteres,
-          cantidadCuotas: parsedData.plazoMeses?.toString() || prev.cantidadCuotas,
-          fechaContrato: parsedData.fechaInicial || "",
-          fechaPrimerPago: parsedData.fechaInicial || "",
+          tasaInteres: defaults.interestRate.toString(),
+          cantidadCuotas: defaults.installments.toString(),
         }));
-
-        // Configurar datos de seguro y GPS si están disponibles
-        if (parsedData.tieneSeguro) {
-          setShowAdditionalValues(true);
-          setInsuranceData({
-            montoSeguro: parsedData.montoTotalSeguro || 0,
-            aplicarSeguroDesde: 1,
-            aplicarSeguroHasta: parsedData.plazoMeses || 12,
-          });
-        }
-
-        if (parsedData.tieneGPS) {
-          setShowAdditionalValues(true);
-          setGpsData({
-            montoGps: parsedData.montoTotalGPS || 0,
-            aplicarGpsDesde: 1,
-            aplicarGpsHasta: parsedData.plazoMeses || 12,
-          });
-        }
-
-        // Limpiar los datos del localStorage después de usarlos
-        localStorage.removeItem('loanCalculationData');
       }
-    } catch (error) {
-      console.error('Error al cargar datos de la calculadora:', error);
     }
-  }, []); // Solo ejecutar una vez al montar el componente
+  }, [companyData, companyLoading, getDefaults, onboardingData?.loanCalculation]);
 
   // Efecto para calcular automáticamente el gasto de cierre cuando cambie el capital
   useEffect(() => {
-    if (loanData.capital && !isNaN(parseFloat(loanData.capital))) {
+    if (loanData.capital && !isNaN(parseFloat(loanData.capital)) && typeof getDefaults === 'function') {
       const capitalValue = parseFloat(loanData.capital);
       const defaults = getDefaults();
       const closingCostPercentage = defaults.closingCosts / 100; // Convertir porcentaje a decimal
       const gastoCierreCalculado = (capitalValue * closingCostPercentage).toFixed(2);
-      setLoanData(prev => ({
-        ...prev,
-        gastoCierre: gastoCierreCalculado
-      }));
-    }
-  }, [loanData.capital, getDefaults]);
-
-  // Efecto para interceptar la navegación y guardar datos antes de cambiar de paso
-  useEffect(() => {
-    // Función para guardar todos los datos del cálculo
-    const saveLoanCalculationData = () => {
-      const loanCalculationData = {
-        loanData,
-        agentData,
-        insuranceData,
-        gpsData,
-        showAdditionalValues,
-        planDescription,
-        amortizationTable: generateAmortizationData(),
-        selectedAgent
-      };
       
-      // Actualizar el contexto global con todos los datos
-      updateOnboardingData({
-        loanCalculation: loanCalculationData
-      });
-    };
+      // Solo actualizar si el valor calculado es diferente al actual
+      if (gastoCierreCalculado !== loanData.gastoCierre) {
+        setLoanData(prev => ({
+          ...prev,
+          gastoCierre: gastoCierreCalculado
+        }));
+      }
+    }
+  }, [loanData.capital, getDefaults]); // Removido loanData.gastoCierre para evitar bucle infinito
 
-    // Establecer la función enhancedNextStep en el contexto
+  // Usar useRef para mantener referencias estables a los datos actuales
+  const currentDataRef = useRef();
+  
+  // Actualizar la referencia cada vez que cambien los datos
+  useEffect(() => {
+    currentDataRef.current = {
+      loanData,
+      agentData,
+      insuranceData,
+      gpsData,
+      kogarantiaData,
+      showAdditionalValues,
+      planDescription,
+      selectedAgent
+    };
+  });
+
+  // Función estable para guardar todos los datos del cálculo
+  const saveLoanCalculationData = useCallback(() => {
+    const currentData = currentDataRef.current;
+    const loanCalculationData = {
+      ...currentData,
+      amortizationTable: generateAmortizationData()
+    };
+    
+    // Actualizar el contexto global con todos los datos
+    updateOnboardingData({
+      loanCalculation: loanCalculationData
+    });
+  }, [updateOnboardingData]);
+
+  // Efecto para establecer la función enhancedNextStep en el contexto (solo una vez)
+  useEffect(() => {
     setEnhancedNextStep(saveLoanCalculationData);
 
     // Cleanup function
     return () => {
       setEnhancedNextStep(null);
     };
-  }, [loanData, agentData, insuranceData, gpsData, showAdditionalValues, planDescription, selectedAgent, updateOnboardingData, setEnhancedNextStep]);
+  }, [saveLoanCalculationData, setEnhancedNextStep]);
 
   // Función para generar la descripción automática del plan de pago
   const generatePlanDescription = () => {
@@ -238,8 +302,9 @@ const LoanCalculation = () => {
     const tasaNum = parseFloat(loanData.tasaInteres) || 0;
     const cierreNum = parseFloat(loanData.gastoCierre) || 0;
     const roundMultipleNum = 10;
-    const seguroNum = parseFloat(insuranceData.montoSeguro) / plazoNum || 0;
-    const gpsNum = parseFloat(gpsData.montoGps) / plazoNum || 0;
+    const seguroNum = parseFloat(insuranceData.montoSeguro) || 0;
+    const gpsNum = parseFloat(gpsData.montoGps) || 0;
+    const kogarantiaNum = parseFloat(kogarantiaData.montoKogarantia) || 0;
     
     if (capitalNum === 0) return "";
 
@@ -248,8 +313,8 @@ const LoanCalculation = () => {
     const capitalExacto = capitalNum / plazoNum;
     const cierreExacto = cierreNum / plazoNum;
     
-    // Calcular cuota preliminar (para cuotas regulares)
-    const cuotaPreliminar = capitalExacto + cierreExacto + interesBase + seguroNum + gpsNum;
+    // Calcular cuota preliminar (para cuotas regulares) - usando valores por defecto del primer rango
+    const cuotaPreliminar = capitalExacto + cierreExacto + interesBase + seguroNum + gpsNum + kogarantiaNum;
     const cuotaMensual = roundToNearestMultiple(cuotaPreliminar, roundMultipleNum);
     
     // Formatear la descripción
@@ -265,7 +330,11 @@ const LoanCalculation = () => {
   useEffect(() => {
     const description = generatePlanDescription();
     setPlanDescription(description);
-  }, [loanData.capital, loanData.cantidadCuotas, loanData.tasaInteres]);
+  }, [loanData.capital, loanData.cantidadCuotas, loanData.tasaInteres, loanData.gastoCierre, insuranceData.montoSeguro, insuranceData.numeroCuotasSeguro, gpsData.montoGps, gpsData.numeroCuotasGps, kogarantiaData.montoKogarantia, kogarantiaData.numeroCuotasKogarantia]);
+
+  if (loading) {
+    return <CircularProgress />;
+  }
 
   // Función para actualizar el contexto global
   const updateContext = (newData) => {
@@ -295,7 +364,21 @@ const LoanCalculation = () => {
   const handleInsuranceDataChange = (field, value) => {
     const newInsuranceData = { ...insuranceData, [field]: value };
     setInsuranceData(newInsuranceData);
-    updateContext({ insuranceData: newInsuranceData });
+    updateContext({ insuranceData: newInsuranceData, showAdditionalValues: showAdditionalValues });
+  };
+
+  // Función para manejar cambios en gpsData
+  const handleGpsDataChange = (field, value) => {
+    const newGpsData = { ...gpsData, [field]: value };
+    setGpsData(newGpsData);
+    updateContext({ gpsData: newGpsData, showAdditionalValues: showAdditionalValues });
+  };
+
+  // Función para manejar cambios en kogarantiaData
+  const handleKogarantiaDataChange = (field, value) => {
+    const newKogarantiaData = { ...kogarantiaData, [field]: value };
+    setKogarantiaData(newKogarantiaData);
+    updateContext({ kogarantiaData: newKogarantiaData, showAdditionalValues: showAdditionalValues });
   };
 
   // Función para manejar el guardado del agente
@@ -314,122 +397,36 @@ const LoanCalculation = () => {
 
   // Función para calcular el total de seguro
   const calculateTotalInsurance = () => {
-    const { montoSeguro, aplicarSeguroDesde, aplicarSeguroHasta } = insuranceData;
-    const cantidadCuotas = parseInt(loanData.cantidadCuotas) || 12;
+    const { montoSeguro, numeroCuotasSeguro } = insuranceData;
     
     if (montoSeguro === 0) return 0;
     
-    const desde = Math.max(1, aplicarSeguroDesde || 1);
-    const hasta = Math.min(cantidadCuotas, aplicarSeguroHasta || cantidadCuotas);
-    const cuotasConSeguro = Math.max(0, hasta - desde + 1);
+    // Usar el número de cuotas especificado, o 1 por defecto
+    const cuotasConSeguro = numeroCuotasSeguro || 1;
     
     return montoSeguro * cuotasConSeguro;
   };
 
   // Función para calcular el total de GPS
   const calculateTotalGps = () => {
-    const { montoGps, aplicarGpsDesde, aplicarGpsHasta } = gpsData;
-    const cantidadCuotas = parseInt(loanData.cantidadCuotas) || 12;
+    const { montoGps, numeroCuotasGps } = gpsData;
     
     if (montoGps === 0) return 0;
     
-    const desde = Math.max(1, aplicarGpsDesde || 1);
-    const hasta = Math.min(cantidadCuotas, aplicarGpsHasta || cantidadCuotas);
-    const cuotasConGps = Math.max(0, hasta - desde + 1);
+    // Usar el número de cuotas especificado, o 1 por defecto
+    const cuotasConGps = numeroCuotasGps || 1;
     
     return montoGps * cuotasConGps;
   };
 
-  // Funciones auxiliares para redondeo (igual que en loan-calculator)
-  const roundToNearestMultiple = (value, multiple) => {
-    const remainder = value % multiple;
-    if (remainder === 0) return value;
+  // Función para calcular el total de Kogarantía
+  const calculateTotalKogarantia = () => {
+    const { montoKogarantia, numeroCuotasKogarantia } = kogarantiaData;
     
-    // Si hay empate, redondear hacia arriba
-    if (remainder >= multiple / 2) {
-      return value + (multiple - remainder);
-    } else {
-      return value - remainder;
-    }
-  };
-
-  const roundTo2Decimals = (value) => {
-    return Math.round(value * 100) / 100;
-  };
-
-  // Función para generar datos de amortización (usando la misma lógica que loan-calculator)
-  const generateAmortizationData = () => {
-    const capitalNum = parseFloat(loanData.capital) || 0;
-    const plazoNum = parseInt(loanData.cantidadCuotas) || 12;
-    const tasaNum = parseFloat(loanData.tasaInteres) || 0;
-    const cierreNum = parseFloat(loanData.gastoCierre) || 0;
-    const roundMultipleNum = 10; // Valor por defecto para redondeo
-    const seguroNum = parseFloat(insuranceData.montoSeguro) / plazoNum || 0;
-    const gpsNum = parseFloat(gpsData.montoGps) / plazoNum || 0;
+    if (montoKogarantia === 0) return 0;
     
-    if (capitalNum === 0) return [];
-
-    // Cálculos según las reglas del sistema de referencia (igual que loan-calculator)
-    
-    // 1. Base de interés: (capital + cierre_total) * (tasa_mensual_percent / 100)
-    const interesBase = (capitalNum + cierreNum) * (tasaNum / 100);
-    
-    // 2. Capital por cuota (exacto)
-    const capitalExacto = capitalNum / plazoNum;
-    
-    // 3. Cierre por cuota (exacto)
-    const cierreExacto = cierreNum / plazoNum;
-
-    // Crear tabla de amortización
-    const tabla = [];
-    const fechaBase = new Date(loanData.fechaContrato || new Date());
-    
-    let totalCapitalPagado = 0;
-    let totalCierrePagado = 0;
-
-    for (let i = 1; i <= plazoNum; i++) {
-      const fechaVencimiento = new Date(fechaBase);
-      fechaVencimiento.setMonth(fechaBase.getMonth() + i);
-      
-      let capitalCuota, cierreCuota, cuotaMostrada, interesMostrado;
-      
-      if (i === plazoNum) {
-        // Última cuota: ajuste final
-        capitalCuota = roundTo2Decimals(capitalNum - totalCapitalPagado);
-        cierreCuota = roundTo2Decimals(cierreNum - totalCierrePagado);
-        
-        // Cuota preliminar para la última cuota
-        const cuotaPreliminar = capitalCuota + cierreCuota + interesBase + seguroNum + gpsNum;
-        cuotaMostrada = roundToNearestMultiple(cuotaPreliminar, roundMultipleNum);
-        interesMostrado = roundTo2Decimals(cuotaMostrada - capitalCuota - cierreCuota - seguroNum - gpsNum);
-      } else {
-        // Cuotas regulares (1 a plazo_meses - 1)
-        capitalCuota = roundTo2Decimals(capitalExacto);
-        cierreCuota = roundTo2Decimals(cierreExacto);
-        
-        // Cuota preliminar
-        const cuotaPreliminar = capitalCuota + cierreCuota + interesBase + seguroNum + gpsNum;
-        cuotaMostrada = roundToNearestMultiple(cuotaPreliminar, roundMultipleNum);
-        interesMostrado = roundTo2Decimals(cuotaMostrada - capitalCuota - cierreCuota - seguroNum - gpsNum);
-      }
-      
-      totalCapitalPagado += capitalCuota;
-      totalCierrePagado += cierreCuota;
-      
-      tabla.push({
-        cuota: i,
-        cuotaMensual: cuotaMostrada.toFixed(2),
-        capital: capitalCuota.toFixed(2),
-        interes: interesMostrado.toFixed(2),
-        saldoPendiente: (capitalNum - totalCapitalPagado).toFixed(2),
-        cierre: cierreCuota.toFixed(2),
-        seguro: seguroNum.toFixed(2),
-        gps: gpsNum.toFixed(2),
-        fechaVencimiento: fechaVencimiento.toLocaleDateString('es-ES'),
-      });
-    }
-
-    return tabla;
+    const numeroCuotas = parseInt(numeroCuotasKogarantia) || 0;
+    return montoKogarantia * numeroCuotas;
   };
 
   const amortizationTable = generateAmortizationData();
@@ -444,18 +441,29 @@ const LoanCalculation = () => {
       cantidadCuotas: parseInt(loanData.cantidadCuotas) || 12,
       fechaContrato: loanData.fechaContrato,
       fechaPrimerPago: loanData.fechaPrimerPago,
-      // Datos de seguro y GPS
+      // Datos de seguro, GPS y Kogarantía
       tieneSeguro: showAdditionalValues && insuranceData.montoSeguro > 0,
       montoSeguro: insuranceData.montoSeguro || 0,
       tieneGps: showAdditionalValues && gpsData.montoGps > 0,
       montoGps: gpsData.montoGps || 0,
+      tieneKogarantia: showAdditionalValues && kogarantiaData.montoKogarantia > 0,
+      montoKogarantia: kogarantiaData.montoKogarantia || 0,
       // Totales calculados
       totalSeguro: calculateTotalInsurance(),
       totalGps: calculateTotalGps(),
+      totalKogarantia: calculateTotalKogarantia(),
       // Datos de amortización
       amortizationTable: amortizationTable,
       planDescription: planDescription
     };
+
+    // Guardar los datos en el contexto de onboarding
+    updateOnboardingData({
+      loanCalculation: {
+        ...onboardingData.loanCalculation,
+        ...loanCalculationData
+      }
+    });
 
     // Guardar los datos en localStorage para transferir entre páginas
     localStorage.setItem('loanCalculationData', JSON.stringify(loanCalculationData));
@@ -464,60 +472,7 @@ const LoanCalculation = () => {
     navigate('/tools/credit-application');
   };
 
-  // Efecto para interceptar la navegación y guardar datos en el contexto
-  useEffect(() => {
-    const handleBeforeNextStep = async () => {
-      // Preparar los datos del préstamo para guardar en el contexto
-      const loanCalculationData = {
-        capital: parseFloat(loanData.capital) || 0,
-        tasaInteres: parseFloat(loanData.tasaInteres) || 0,
-        plazoMeses: parseInt(loanData.cantidadCuotas) || 12,
-        gastoCierre: parseFloat(loanData.gastoCierre) || 0,
-        fechaPrimerPago: loanData.fechaPrimerPago || '',
-        montoSeguro: insuranceData.montoSeguro || 0,
-        montoGps: gpsData.montoGps || 0,
-        // Datos adicionales que podrían ser útiles
-        loanData: loanData,
-        agentData: agentData,
-        insuranceData: insuranceData,
-        gpsData: gpsData,
-        showAdditionalValues: showAdditionalValues,
-        planDescription: planDescription,
-        amortizationTable: amortizationTable,
-        selectedAgent: selectedAgent
-      };
 
-      // Guardar en el contexto global
-      updateOnboardingData({
-        loanCalculation: loanCalculationData
-      });
-
-      console.log('Datos de préstamo guardados en contexto:', loanCalculationData);
-    };
-
-    // Si hay una función nextStep disponible, interceptarla temporalmente
-    if (nextStep) {
-      const originalNextStep = nextStep;
-      
-      // Reemplazar temporalmente nextStep para guardar datos antes de navegar
-      const enhancedNextStep = async () => {
-        await handleBeforeNextStep();
-        return originalNextStep();
-      };
-
-      // Actualizar la función nextStep en el contexto
-      updateOnboardingData({
-        enhancedNextStep: enhancedNextStep
-      });
-
-      // Restaurar la función original cuando el componente se desmonte
-      return () => {
-        updateOnboardingData({
-          enhancedNextStep: originalNextStep
-        });
-      };
-    }
-  }, [loanData, agentData, insuranceData, gpsData, showAdditionalValues, planDescription, amortizationTable, selectedAgent, nextStep, updateOnboardingData]);
 
   return (
     <React.Fragment>
@@ -575,12 +530,26 @@ const LoanCalculation = () => {
           </Typography>
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Tipo de Préstamo</InputLabel>
+                <Select
+                  value={loanData.tipoPrestamo}
+                  label="Tipo de Préstamo"
+                  onChange={(e) => handleLoanDataChange('tipoPrestamo', e.target.value)}
+                >
+                  <MenuItem value="personal">Personal</MenuItem>
+                  <MenuItem value="vehicular">Vehicular</MenuItem>
+                  <MenuItem value="hipotecario">Hipotecario</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 size="small"
                 label="Capital"
                 type="number"
-                value={loanData.capital}
+                value={loanData.capital === '' ? '' : loanData.capital}
                 onChange={(e) => handleLoanDataChange('capital', e.target.value)}
                 InputProps={{
                   startAdornment: <Typography sx={{ mr: 1, fontSize: '0.875rem' }}>RD$</Typography>,
@@ -593,7 +562,7 @@ const LoanCalculation = () => {
                 size="small"
                 label="Gasto por cierre"
                 type="number"
-                value={loanData.gastoCierre}
+                value={loanData.gastoCierre === '' ? '' : loanData.gastoCierre}
                 onChange={(e) => handleLoanDataChange('gastoCierre', e.target.value)}
                 InputProps={{
                   startAdornment: <Typography sx={{ mr: 1, fontSize: '0.875rem' }}>RD$</Typography>,
@@ -606,7 +575,7 @@ const LoanCalculation = () => {
                 size="small"
                 label="Tasa de interés"
                 type="number"
-                value={loanData.tasaInteres}
+                value={loanData.tasaInteres === '' ? '' : loanData.tasaInteres}
                 onChange={(e) => handleLoanDataChange('tasaInteres', e.target.value)}
                 InputProps={{
                   endAdornment: <Typography sx={{ ml: 1, fontSize: '0.875rem' }}>%</Typography>,
@@ -619,7 +588,7 @@ const LoanCalculation = () => {
                 size="small"
                 label="Cantidad de cuotas"
                 type="number"
-                value={loanData.cantidadCuotas}
+                value={loanData.cantidadCuotas === '' ? '' : loanData.cantidadCuotas}
                 onChange={(e) => handleLoanDataChange('cantidadCuotas', e.target.value)}
               />
             </Grid>
@@ -629,7 +598,7 @@ const LoanCalculation = () => {
                 size="small"
                 label="Fecha del contrato"
                 type="date"
-                value={loanData.fechaContrato}
+                value={loanData.fechaContrato === '' ? '' : loanData.fechaContrato}
                 onChange={(e) => handleLoanDataChange('fechaContrato', e.target.value)}
                 InputLabelProps={{ shrink: true }}
               />
@@ -640,7 +609,7 @@ const LoanCalculation = () => {
                 size="small"
                 label="Fecha primer pago"
                 type="date"
-                value={loanData.fechaPrimerPago}
+                value={loanData.fechaPrimerPago === '' ? '' : loanData.fechaPrimerPago}
                 onChange={(e) => handleLoanDataChange('fechaPrimerPago', e.target.value)}
                 InputLabelProps={{ shrink: true }}
               />
@@ -690,194 +659,300 @@ const LoanCalculation = () => {
           </Box>
 
           {showAdditionalValues && (
-            <Grid container spacing={2}>
-              {/* Sección de Kogarantíaa */}
-<Grid item xs={12}>
-  <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 'bold', color: "secondary.main" }}>
-    Kogarantía
-  </Typography>
-  <Grid container spacing={2}>
-    <Grid item xs={12} md={3}>
-      <TextField
-        fullWidth
-        size="small"
-        label="Monto Kogarantía"
-        type="number"
-        value={kogarantiaData.montoKogarantia}
-        onChange={(e) => setKogarantiaData({ ...kogarantiaData, montoKogarantia: parseFloat(e.target.value) || 0 })}
-        InputProps={{
-          startAdornment: <Typography sx={{ mr: 1, fontSize: '0.875rem' }}>RD$</Typography>,
-        }}
-      />
-    </Grid>
-    <Grid item xs={12} md={3}>
-      <TextField
-        fullWidth
-        size="small"
-        label="Aplicar Kogarantía desde cuota..."
-        type="number"
-        value={kogarantiaData.aplicarKogarantiaDesde}
-        onChange={(e) => setKogarantiaData({ ...kogarantiaData, aplicarKogarantiaDesde: parseInt(e.target.value) || 0 })}
-        inputProps={{ min: 1, max: parseInt(loanData.cantidadCuotas) || 12 }}
-      />
-    </Grid>
-    <Grid item xs={12} md={3}>
-      <TextField
-        fullWidth
-        size="small"
-        label="Aplicar Kogarantía hasta cuota..."
-        type="number"
-        value={kogarantiaData.aplicarKogarantiaHasta}
-        onChange={(e) => setKogarantiaData({ ...kogarantiaData, aplicarKogarantiaHasta: parseInt(e.target.value) || 0 })}
-        inputProps={{ min: 1, max: parseInt(loanData.cantidadCuotas) || 12 }}
-      />
-    </Grid>
-    <Grid item xs={12} md={3}>
-      <TextField
-        fullWidth
-        size="small"
-        label="Total Kogarantía"
-        value={`RD$ ${calculateTotalKogarantia().toFixed(2)}`}
-        InputProps={{
-          readOnly: true,
-        }}
-        sx={{
-          '& .MuiInputBase-input': {
-            backgroundColor: '#f5f5f5',
-            fontWeight: 'bold',
-            fontSize: '0.875rem'
-          }
-        }}
-      />
-    </Grid>
-  </Grid>
-</Grid>
+            <Grid container spacing={3}>
+              {/* Sección de Kogarantía */}
+              <Grid item xs={12}>
+                <Box sx={{ p: 2 }}>
+                  <Box sx={{ textAlign: 'center', mb: 2 }}>
+                    <Box 
+                      component="img" 
+                      src="/kogarantialogo.png" 
+                      alt="Kogarantía Logo"
+                      sx={{ 
+                        width: 32, 
+                        height: 32, 
+                        mb: 1
+                      }}
+                    />
+                    <Typography variant="subtitle1">
+                      Kogarantía - Seguro de Deuda
+                    </Typography>
+                  </Box>
+                  
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Monto Kogarantía"
+                        type="number"
+                        value={kogarantiaData.montoKogarantia === 0 ? '' : kogarantiaData.montoKogarantia}
+                        onChange={(e) => handleKogarantiaDataChange('montoKogarantia', parseFloat(e.target.value) || 0)}
+                        InputProps={{
+                          startAdornment: <Typography sx={{ mr: 1, fontSize: '0.875rem' }}>RD$</Typography>,
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Aplicar Kogarantía a este numero de cuotas"
+                        type="number"
+                        value={kogarantiaData.numeroCuotasKogarantia || ''}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 0;
+                          const maxCuotas = parseInt(loanData.cantidadCuotas) || 12;
+                          const validValue = Math.max(0, Math.min(value, maxCuotas));
+                          handleKogarantiaDataChange('numeroCuotasKogarantia', validValue);
+                        }}
+                        inputProps={{ min: 0, max: parseInt(loanData.cantidadCuotas) || 12 }}
+                        helperText={`Máximo: ${parseInt(loanData.cantidadCuotas) || 12} cuotas`}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Desde cuota"
+                        type="number"
+                        value={kogarantiaData.aplicarKogarantiaDesde === 0 ? '' : kogarantiaData.aplicarKogarantiaDesde}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 0;
+                          const maxCuotas = parseInt(loanData.cantidadCuotas) || 12;
+                          const minValue = 1;
+                          const maxValue = Math.min(maxCuotas, kogarantiaData.aplicarKogarantiaHasta || maxCuotas);
+                          const validValue = Math.max(minValue, Math.min(value, maxValue));
+                          handleKogarantiaDataChange('aplicarKogarantiaDesde', validValue);
+                        }}
+                        inputProps={{ min: 1, max: parseInt(loanData.cantidadCuotas) || 12 }}
+                        helperText={`Rango: 1 - ${kogarantiaData.aplicarKogarantiaHasta || (parseInt(loanData.cantidadCuotas) || 12)}`}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Aplicar hasta cuota"
+                        type="number"
+                        value={kogarantiaData.aplicarKogarantiaHasta === 0 ? '' : kogarantiaData.aplicarKogarantiaHasta}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 0;
+                          const maxCuotas = parseInt(loanData.cantidadCuotas) || 12;
+                          const minValue = kogarantiaData.aplicarKogarantiaDesde || 1;
+                          const validValue = Math.max(minValue, Math.min(value, maxCuotas));
+                          handleKogarantiaDataChange('aplicarKogarantiaHasta', validValue);
+                        }}
+                        inputProps={{ min: 1, max: parseInt(loanData.cantidadCuotas) || 12 }}
+                        helperText={`Rango: ${kogarantiaData.aplicarKogarantiaDesde || 1} - ${parseInt(loanData.cantidadCuotas) || 12}`}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Total Kogarantía"
+                        value={calculateTotalKogarantia() > 0 ? calculateTotalKogarantia().toFixed(2) : ''}
+                        InputProps={{
+                          readOnly: true,
+                          startAdornment: <Typography sx={{ mr: 1 }}>RD$</Typography>,
+                        }}
+                      />
+                    </Grid>
+                  </Grid>
+                </Box>
+              </Grid>
 
 
               {/* Sección de Seguro */}
               <Grid item xs={12}>
-                <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 'bold', color: "secondary.main" }}>
-                  Seguro
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={3}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Monto Seguro"
-                      type="number"
-                      value={insuranceData.montoSeguro}
-                      onChange={(e) => handleInsuranceDataChange('montoSeguro', parseFloat(e.target.value) || 0)}
-                      InputProps={{
-                        startAdornment: <Typography sx={{ mr: 1, fontSize: '0.875rem' }}>RD$</Typography>,
-                      }}
-                    />
+                <Box sx={{ p: 2 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                    Seguro
+                  </Typography>
+                  
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Monto"
+                        type="number"
+                        value={insuranceData.montoSeguro === 0 ? '' : insuranceData.montoSeguro}
+                        onChange={(e) => {
+                          const value = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
+                          handleInsuranceDataChange('montoSeguro', value);
+                        }}
+                        InputProps={{
+                          startAdornment: <Typography sx={{ mr: 1, fontSize: '0.9rem' }}>RD$</Typography>,
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Aplicar seguro a este numero de cuotas"
+                        type="number"
+                        value={insuranceData.numeroCuotasSeguro || ''}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 0;
+                          const maxCuotas = parseInt(loanData.cantidadCuotas) || 12;
+                          const validValue = Math.max(0, Math.min(value, maxCuotas));
+                          handleInsuranceDataChange('numeroCuotasSeguro', validValue);
+                        }}
+                        inputProps={{ min: 0, max: parseInt(loanData.cantidadCuotas) || 12 }}
+                        helperText={`Máximo: ${parseInt(loanData.cantidadCuotas) || 12} cuotas`}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Desde cuota"
+                        type="number"
+                        value={insuranceData.aplicarSeguroDesde === 0 ? '' : insuranceData.aplicarSeguroDesde}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 0;
+                          const maxCuotas = parseInt(loanData.cantidadCuotas) || 12;
+                          const minValue = 1;
+                          const maxValue = Math.min(maxCuotas, insuranceData.aplicarSeguroHasta || maxCuotas);
+                          const validValue = Math.max(minValue, Math.min(value, maxValue));
+                          handleInsuranceDataChange('aplicarSeguroDesde', validValue);
+                        }}
+                        inputProps={{ min: 1, max: parseInt(loanData.cantidadCuotas) || 12 }}
+                        helperText={`Rango: 1 - ${insuranceData.aplicarSeguroHasta || (parseInt(loanData.cantidadCuotas) || 12)}`}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Aplicar hasta cuota"
+                        type="number"
+                        value={insuranceData.aplicarSeguroHasta === 0 ? '' : insuranceData.aplicarSeguroHasta}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 0;
+                          const maxCuotas = parseInt(loanData.cantidadCuotas) || 12;
+                          const minValue = insuranceData.aplicarSeguroDesde || 1;
+                          const validValue = Math.max(minValue, Math.min(value, maxCuotas));
+                          handleInsuranceDataChange('aplicarSeguroHasta', validValue);
+                        }}
+                        inputProps={{ min: 1, max: parseInt(loanData.cantidadCuotas) || 12 }}
+                        helperText={`Rango: ${insuranceData.aplicarSeguroDesde || 1} - ${parseInt(loanData.cantidadCuotas) || 12}`}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Total"
+                        value={calculateTotalInsurance() > 0 ? calculateTotalInsurance().toFixed(2) : ''}
+                        InputProps={{
+                          readOnly: true,
+                          startAdornment: <Typography sx={{ mr: 1 }}>RD$</Typography>,
+                        }}
+                      />
+                    </Grid>
                   </Grid>
-                  <Grid item xs={12} md={3}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Aplicar seguro desde cuota..."
-                      type="number"
-                      value={insuranceData.aplicarSeguroDesde}
-                      onChange={(e) => handleInsuranceDataChange('aplicarSeguroDesde', parseInt(e.target.value) || 0)}
-                      inputProps={{ min: 1, max: parseInt(loanData.cantidadCuotas) || 12 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={3}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Aplicar seguro hasta cuota..."
-                      type="number"
-                      value={insuranceData.aplicarSeguroHasta}
-                      onChange={(e) => handleInsuranceDataChange('aplicarSeguroHasta', parseInt(e.target.value) || 0)}
-                      inputProps={{ min: 1, max: parseInt(loanData.cantidadCuotas) || 12 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={3}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Total seguro"
-                      value={`RD$ ${calculateTotalInsurance().toFixed(2)}`}
-                      InputProps={{
-                        readOnly: true,
-                      }}
-                      sx={{
-                        '& .MuiInputBase-input': {
-                          backgroundColor: '#f5f5f5',
-                          fontWeight: 'bold',
-                          fontSize: '0.875rem'
-                        }
-                      }}
-                    />
-                  </Grid>
-                </Grid>
+                </Box>
               </Grid>
 
               {/* Sección de GPS */}
               <Grid item xs={12}>
-                <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 'bold', color: "secondary.main" }}>
-                  GPS
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={3}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Monto GPS"
-                      type="number"
-                      value={gpsData.montoGps}
-                      onChange={(e) => setGpsData({ ...gpsData, montoGps: parseFloat(e.target.value) || 0 })}
-                      InputProps={{
-                        startAdornment: <Typography sx={{ mr: 1, fontSize: '0.875rem' }}>RD$</Typography>,
-                      }}
-                    />
+                <Box sx={{ p: 2 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                    GPS
+                  </Typography>
+                  
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Monto"
+                        type="number"
+                        value={gpsData.montoGps === 0 ? '' : gpsData.montoGps}
+                        onChange={(e) => {
+                          const value = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
+                          handleGpsDataChange('montoGps', value);
+                        }}
+                        InputProps={{
+                          startAdornment: <Typography sx={{ mr: 1, fontSize: '0.9rem' }}>RD$</Typography>,
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Aplicar GPS a este numero de cuotas"
+                        type="number"
+                        value={gpsData.numeroCuotasGps || ''}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 0;
+                          const maxCuotas = parseInt(loanData.cantidadCuotas) || 12;
+                          const validValue = Math.max(0, Math.min(value, maxCuotas));
+                          handleGpsDataChange('numeroCuotasGps', validValue);
+                        }}
+                        inputProps={{ min: 0, max: parseInt(loanData.cantidadCuotas) || 12 }}
+                        helperText={`Máximo: ${parseInt(loanData.cantidadCuotas) || 12} cuotas`}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Desde cuota"
+                        type="number"
+                        value={gpsData.aplicarGpsDesde === 0 ? '' : gpsData.aplicarGpsDesde}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 0;
+                          const maxCuotas = parseInt(loanData.cantidadCuotas) || 12;
+                          const minValue = 1;
+                          const maxValue = Math.min(maxCuotas, gpsData.aplicarGpsHasta || maxCuotas);
+                          const validValue = Math.max(minValue, Math.min(value, maxValue));
+                          handleGpsDataChange('aplicarGpsDesde', validValue);
+                        }}
+                        inputProps={{ min: 1, max: parseInt(loanData.cantidadCuotas) || 12 }}
+                        helperText={`Rango: 1 - ${gpsData.aplicarGpsHasta || (parseInt(loanData.cantidadCuotas) || 12)}`}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Aplicar hasta cuota"
+                        type="number"
+                        value={gpsData.aplicarGpsHasta === 0 ? '' : gpsData.aplicarGpsHasta}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 0;
+                          const maxCuotas = parseInt(loanData.cantidadCuotas) || 12;
+                          const minValue = gpsData.aplicarGpsDesde || 1;
+                          const validValue = Math.max(minValue, Math.min(value, maxCuotas));
+                          handleGpsDataChange('aplicarGpsHasta', validValue);
+                        }}
+                        inputProps={{ min: 1, max: parseInt(loanData.cantidadCuotas) || 12 }}
+                        helperText={`Rango: ${gpsData.aplicarGpsDesde || 1} - ${parseInt(loanData.cantidadCuotas) || 12}`}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Total"
+                        value={calculateTotalGps() > 0 ? calculateTotalGps().toFixed(2) : ''}
+                        InputProps={{
+                          readOnly: true,
+                          startAdornment: <Typography sx={{ mr: 1 }}>RD$</Typography>,
+                        }}
+                      />
+                    </Grid>
                   </Grid>
-                  <Grid item xs={12} md={3}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Aplicar GPS desde cuota..."
-                      type="number"
-                      value={gpsData.aplicarGpsDesde}
-                      onChange={(e) => setGpsData({ ...gpsData, aplicarGpsDesde: parseInt(e.target.value) || 0 })}
-                      inputProps={{ min: 1, max: parseInt(loanData.cantidadCuotas) || 12 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={3}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Aplicar GPS hasta cuota..."
-                      type="number"
-                      value={gpsData.aplicarGpsHasta}
-                      onChange={(e) => setGpsData({ ...gpsData, aplicarGpsHasta: parseInt(e.target.value) || 0 })}
-                      inputProps={{ min: 1, max: parseInt(loanData.cantidadCuotas) || 12 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={3}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Total GPS"
-                      value={`RD$ ${calculateTotalGps().toFixed(2)}`}
-                      InputProps={{
-                        readOnly: true,
-                      }}
-                      sx={{
-                        '& .MuiInputBase-input': {
-                          backgroundColor: '#f5f5f5',
-                          fontWeight: 'bold',
-                          fontSize: '0.875rem'
-                        }
-                      }}
-                    />
-                  </Grid>
-                </Grid>
-              </Grid>
+                </Box>
+
             </Grid>
+          </Grid>
           )}
         </Box>
 
@@ -990,7 +1065,7 @@ const LoanCalculation = () => {
               <TextField
                 fullWidth
                 label="Cédula"
-                value={agentData.cedula}
+                value={agentData.cedula === '' ? '' : agentData.cedula}
                 onChange={(e) => handleAgentDataChange('cedula', e.target.value)}
                 placeholder="001-1234567-8"
               />
@@ -999,7 +1074,7 @@ const LoanCalculation = () => {
               <TextField
                 fullWidth
                 label="Nombre"
-                value={agentData.nombre}
+                value={agentData.nombre === '' ? '' : agentData.nombre}
                 onChange={(e) => handleAgentDataChange('nombre', e.target.value)}
                 placeholder="Nombre completo"
               />
@@ -1008,7 +1083,7 @@ const LoanCalculation = () => {
               <TextField
                 fullWidth
                 label="Teléfono"
-                value={agentData.telefono}
+                value={agentData.telefono === '' ? '' : agentData.telefono}
                 onChange={(e) => handleAgentDataChange('telefono', e.target.value)}
                 placeholder="809-123-4567"
               />
@@ -1017,7 +1092,7 @@ const LoanCalculation = () => {
               <TextField
                 fullWidth
                 label="Dirección"
-                value={agentData.direccion}
+                value={agentData.direccion === '' ? '' : agentData.direccion}
                 onChange={(e) => handleAgentDataChange('direccion', e.target.value)}
                 placeholder="Dirección completa"
                 multiline
@@ -1068,7 +1143,7 @@ const LoanCalculation = () => {
           }}>
             <Typography variant="h6" sx={{ 
               mb: 3, 
-              color: '#24292f', 
+              color: '#242424', 
               fontWeight: 600,
               fontSize: '1.1rem',
               borderBottom: '1px solid #d0d7de',
@@ -1083,7 +1158,7 @@ const LoanCalculation = () => {
                 </Typography>
                 <Typography variant="h6" sx={{ 
                   fontWeight: 600, 
-                  color: '#24292f',
+                  color: '#242424',
                   fontSize: '1.1rem'
                 }}>
                   RD$ {parseFloat(loanData.capital || 0).toLocaleString()}
@@ -1095,7 +1170,7 @@ const LoanCalculation = () => {
                 </Typography>
                 <Typography variant="h6" sx={{ 
                   fontWeight: 600, 
-                  color: '#24292f',
+                  color: '#242424',
                   fontSize: '1.1rem'
                 }}>
                   {loanData.tasaInteres}%
@@ -1107,7 +1182,7 @@ const LoanCalculation = () => {
                 </Typography>
                 <Typography variant="h6" sx={{ 
                   fontWeight: 600, 
-                  color: '#24292f',
+                  color: '#242424',
                   fontSize: '1.1rem'
                 }}>
                   {loanData.cantidadCuotas}
@@ -1119,7 +1194,7 @@ const LoanCalculation = () => {
                 </Typography>
                 <Typography variant="h6" sx={{ 
                   fontWeight: 600, 
-                  color: '#24292f',
+                  color: '#242424',
                   fontSize: '1.1rem'
                 }}>
                   RD$ {parseFloat(loanData.gastoCierre || 0).toLocaleString()}
@@ -1141,7 +1216,7 @@ const LoanCalculation = () => {
               <TableHead>
                 <TableRow sx={{ backgroundColor: '#f6f8fa' }}>
                   <TableCell sx={{ 
-                    color: '#24292f', 
+                    color: '#242424', 
                     fontWeight: 600, 
                     fontSize: '0.875rem',
                     textAlign: 'center',
@@ -1151,7 +1226,7 @@ const LoanCalculation = () => {
                     No.
                   </TableCell>
                   <TableCell align="right" sx={{ 
-                    color: '#24292f', 
+                    color: '#242424', 
                     fontWeight: 600, 
                     fontSize: '0.875rem',
                     borderBottom: '1px solid #d0d7de',
@@ -1160,7 +1235,7 @@ const LoanCalculation = () => {
                     Cuota Mensual
                   </TableCell>
                   <TableCell align="right" sx={{ 
-                    color: '#24292f', 
+                    color: '#242424', 
                     fontWeight: 600, 
                     fontSize: '0.875rem',
                     borderBottom: '1px solid #d0d7de',
@@ -1169,7 +1244,7 @@ const LoanCalculation = () => {
                     Abono a Capital
                   </TableCell>
                   <TableCell align="right" sx={{ 
-                    color: '#24292f', 
+                    color: '#242424', 
                     fontWeight: 600, 
                     fontSize: '0.875rem',
                     borderBottom: '1px solid #d0d7de',
@@ -1178,7 +1253,7 @@ const LoanCalculation = () => {
                     Cierre
                   </TableCell>
                   <TableCell align="right" sx={{ 
-                    color: '#24292f', 
+                    color: '#242424', 
                     fontWeight: 600, 
                     fontSize: '0.875rem',
                     borderBottom: '1px solid #d0d7de',
@@ -1187,7 +1262,7 @@ const LoanCalculation = () => {
                     Interés
                   </TableCell>
                   <TableCell align="right" sx={{ 
-                    color: '#24292f', 
+                    color: '#242424', 
                     fontWeight: 600, 
                     fontSize: '0.875rem',
                     borderBottom: '1px solid #d0d7de',
@@ -1196,7 +1271,7 @@ const LoanCalculation = () => {
                     Seguro
                   </TableCell>
                   <TableCell align="right" sx={{ 
-                    color: '#24292f', 
+                    color: '#242424', 
                     fontWeight: 600, 
                     fontSize: '0.875rem',
                     borderBottom: '1px solid #d0d7de',
@@ -1205,7 +1280,16 @@ const LoanCalculation = () => {
                     GPS
                   </TableCell>
                   <TableCell align="right" sx={{ 
-                    color: '#24292f', 
+                    color: '#242424', 
+                    fontWeight: 600, 
+                    fontSize: '0.875rem',
+                    borderBottom: '1px solid #d0d7de',
+                    py: 2
+                  }}>
+                    Kogarantía
+                  </TableCell>
+                  <TableCell align="right" sx={{ 
+                    color: '#242424', 
                     fontWeight: 600, 
                     fontSize: '0.875rem',
                     borderBottom: '1px solid #d0d7de',
@@ -1233,7 +1317,7 @@ const LoanCalculation = () => {
                       textAlign: 'center', 
                       fontWeight: 500,
                       fontSize: '0.875rem',
-                      color: '#24292f',
+                      color: '#242424',
                       py: 1.5
                     }}>
                       {row.cuota}
@@ -1241,7 +1325,7 @@ const LoanCalculation = () => {
                     <TableCell align="right" sx={{ 
                       fontWeight: 600,
                       fontSize: '0.875rem',
-                      color: '#24292f',
+                      color: '#242424',
                       py: 1.5
                     }}>
                       RD$ {parseFloat(row.cuotaMensual).toLocaleString('es-DO', {
@@ -1305,6 +1389,17 @@ const LoanCalculation = () => {
                       })}
                     </TableCell>
                     <TableCell align="right" sx={{ 
+                      fontWeight: 400,
+                      fontSize: '0.875rem',
+                      color: '#656d76',
+                      py: 1.5
+                    }}>
+                      RD$ {parseFloat(row.kogarantia || 0).toLocaleString('es-DO', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })}
+                    </TableCell>
+                    <TableCell align="right" sx={{ 
                       fontWeight: 500,
                       fontSize: '0.875rem',
                       color: parseFloat(row.saldoPendiente) === 0 ? '#1a7f37' : '#24292f',
@@ -1318,24 +1413,29 @@ const LoanCalculation = () => {
                   </TableRow>
                 ))}
               </TableBody>
+              <TableRow sx={{ backgroundColor: '#f6f8fa', borderTop: '2px solid #d0d7de' }}>
+                <TableCell colSpan={2} sx={{ 
+                  fontWeight: 600, 
+                  fontSize: '0.875rem',
+                  color: '#242424',
+                  py: 2
+                }}>
+                  TOTALES
+                </TableCell>
+                <TableCell align="right" sx={{ 
+                  fontWeight: 600, 
+                  fontSize: '0.875rem',
+                  color: '#242424',
+                  py: 2
+                }}>
+                  -
+                </TableCell>
+              </TableRow>
             </Table>
           </TableContainer>
-
-
         </DialogContent>
-        <DialogActions sx={{ p: 2, backgroundColor: '#f8f9fa' }}>
-          <Button 
-            onClick={() => setOpenAmortizationDialog(false)}
-            variant="outlined"
-            size="small"
-            sx={{ 
-              minWidth: 100,
-              fontWeight: 500,
-              fontSize: '0.875rem',
-              py: 1,
-              px: 2
-            }}
-          >
+        <DialogActions>
+          <Button onClick={() => setOpenAmortizationDialog(false)}>
             Cerrar
           </Button>
         </DialogActions>

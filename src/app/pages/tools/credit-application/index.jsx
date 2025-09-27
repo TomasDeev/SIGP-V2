@@ -82,7 +82,7 @@ const transformLoanData = (loans) => {
     }
     
     return {
-      id: `${loan.Prefijo || ''}${loan.PrestamoNo || loan.IdPrestamo?.toString() || ''}`,
+      id: loan.IdPrestamo?.toString() || '', // Usar siempre IdPrestamo como id
       fecha: loan.FechaCreacion ? new Date(loan.FechaCreacion).toLocaleDateString('es-DO', { 
         day: '2-digit', 
         month: '2-digit', 
@@ -198,6 +198,15 @@ export default function CreditApplicationPage() {
     { id: 'tabla-amortizacion', name: 'Tabla de Amortización', description: 'Cronograma de pagos del préstamo' },
   ];
 
+  // Función para manejar nueva solicitud
+  const handleNewApplication = () => {
+    // Limpiar el modo de edición del localStorage
+    localStorage.removeItem('onboardingEditMode');
+    localStorage.removeItem('onboardingEditData');
+    // Navegar a la página de onboarding
+    navigate('/onboarding-2');
+  };
+
   // Función para cargar préstamos desde la base de datos
   const loadLoans = async () => {
     try {
@@ -291,6 +300,8 @@ export default function CreditApplicationPage() {
     console.log(`Opción seleccionada: ${option} para solicitud: ${selectedRow?.id} - Cliente: ${selectedRow?.cliente}`);
     
     if (option === 'ver') {
+      // Recargar los datos antes de navegar
+      await loadLoans(); 
       // Navegar a la página de detalles con el ID del préstamo
       if (selectedRow?.id) {
         navigate(`/tools/credit-application/${selectedRow.id}`);
@@ -336,12 +347,44 @@ export default function CreditApplicationPage() {
 
       const clientData = clientResult.data;
       
-      // TODO: Obtener datos relacionados de otras tablas (localizaciones, referencias, etc.)
-      // Por ahora mapearemos solo los datos básicos disponibles en la tabla cuentas
+      // Obtener datos del préstamo asociado al cliente
+      let loanData = null;
+      try {
+        const loanResult = await PrestamosService.getByCuenta(clientData.IdCliente);
+        if (loanResult.success && loanResult.data && loanResult.data.length > 0) {
+          // Tomar el préstamo más reciente
+          loanData = loanResult.data[0];
+        }
+      } catch (error) {
+        console.warn('Error obteniendo datos del préstamo:', error);
+      }
+      
+      // Obtener datos de localización
+      let localizacionData = null;
+      try {
+        const localizacionResult = await LocalizacionesService.getByClientId(clientData.IdCliente);
+        if (localizacionResult.success && localizacionResult.data && localizacionResult.data.length > 0) {
+          localizacionData = localizacionResult.data[0];
+        }
+      } catch (error) {
+        console.warn('Error obteniendo datos de localización:', error);
+      }
+      
+      // Obtener referencias personales
+      let referenciasData = [];
+      try {
+        const referenciasResult = await ReferenciasPersonalesService.getByClientId(clientData.IdCliente);
+        if (referenciasResult.success && referenciasResult.data) {
+          referenciasData = referenciasResult.data;
+        }
+      } catch (error) {
+        console.warn('Error obteniendo referencias personales:', error);
+      }
       
       // Mapear datos del cliente al formato del onboarding
       const onboardingData = {
         datosPersonales: {
+          idCliente: clientData.IdCliente, // Campo crítico para identificar el cliente al actualizar
           nombres: clientData.Nombres || '',
           apellidos: clientData.Apellidos || '',
           cedula: clientData.Cedula || '',
@@ -363,15 +406,15 @@ export default function CreditApplicationPage() {
         },
         direccion: {
           direccion: clientData.Direccion || '',
-          sector: clientData.Sector || '',
-          // Campos adicionales que se pueden agregar
-          provincia: '',
-          municipio: '',
-          calle: '',
+          sector: localizacionData?.Sector || clientData.Sector || '',
+          provincia: '', // Se puede mapear desde IdMunicipio si es necesario
+          municipio: localizacionData?.IdMunicipio || '',
+          calle: localizacionData?.Calle || '',
           numero: '',
-          referencia: '',
-          latitud: null,
-          longitud: null
+          referencia: localizacionData?.ReferenciaLocalidad || '',
+          latitud: localizacionData?.Latitud || null,
+          longitud: localizacionData?.Longitud || null,
+          subSector: localizacionData?.SubSector || ''
         },
         informacionLaboral: {
           empresa: clientData.LugarTrabajo || '',
@@ -396,7 +439,16 @@ export default function CreditApplicationPage() {
           lugarTrabajo: '',
           direccionTrabajo: ''
         },
-        referenciasPersonales: [],
+        referenciasPersonales: referenciasData.map(ref => ({
+          nombres: ref.Nombres || '',
+          apellidos: ref.Apellidos || '',
+          cedula: ref.Cedula || '',
+          telefono: ref.Telefono || '',
+          celular: ref.Celular || '',
+          direccion: ref.Direccion || '',
+          parentesco: ref.Parentesco || '',
+          tiempoConocerlo: ref.TiempoConocerlo || ''
+        })),
         fiadores: [],
         seguros: {
           gps: false,
@@ -415,12 +467,19 @@ export default function CreditApplicationPage() {
           tipoCuenta: 'corriente'
         },
         loanCalculation: {
-          capital: 0,
-          cantidadCuotas: 12,
-          tasaInteres: 18,
-          gastoCierre: 0,
-          montoSeguro: 0,
-          fechaPrimerPago: new Date().toISOString().split('T')[0]
+          capital: loanData?.CapitalPrestado || 0,
+          cantidadCuotas: loanData?.Cuotas || 12,
+          tasaInteres: loanData?.Interes || 18,
+          gastoCierre: loanData?.GastoCierre || 0,
+          montoSeguro: loanData?.GastoSeguro || 0,
+          fechaPrimerPago: loanData?.FechaPrimerPago ? 
+            new Date(loanData.FechaPrimerPago).toISOString().split('T')[0] : 
+            new Date().toISOString().split('T')[0],
+          interesMora: loanData?.InteresMora || 0,
+          frecuenciaPago: loanData?.FrecuenciaPago || 1,
+          tipoPrestamo: loanData?.IdTipoPrestamo || 1,
+          observaciones: loanData?.Observaciones || '',
+          loanId: loanData?.IdPrestamo || null
         },
         isEditing: true,
         clientId: clientData.IdCliente
@@ -572,8 +631,36 @@ export default function CreditApplicationPage() {
 
       // Obtener referencias personales
       const referenciasResult = await ReferenciasPersonalesService.getByClientId(clientData.IdCliente);
-      const referencias = referenciasResult.success ? referenciasResult.data : [];
-      console.log('Referencias personales obtenidas:', referencias);
+      console.log('Resultado del servicio de referencias:', referenciasResult);
+      let referencias = referenciasResult.success ? referenciasResult.data : [];
+      console.log('Referencias personales obtenidas (antes de pasar a generar HTML):', referencias);
+      console.log('Tipo de la variable referencias:', typeof referencias);
+      console.log('Es un array?:', Array.isArray(referencias));
+      
+      // Intentar recuperar los metadatos adicionales de las referencias
+      try {
+        const referencesMetadata = localStorage.getItem('referencesMetadata');
+        if (referencesMetadata) {
+          const parsedMetadata = JSON.parse(referencesMetadata);
+          if (Array.isArray(parsedMetadata) && parsedMetadata.length > 0) {
+            // Enriquecer las referencias con los metadatos
+            referencias = referencias.map(ref => {
+              const metadata = parsedMetadata.find(m => m.IdReferenciaPersonal === ref.IdReferenciaPersonal);
+              if (metadata) {
+                return {
+                  ...ref,
+                  Relacion: metadata.Relacion || '',
+                  Nombres: metadata.Nombres || '',
+                  Apellidos: metadata.Apellidos || ''
+                };
+              }
+              return ref;
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error al procesar metadatos de referencias:', error);
+      }
 
       // Obtener localizaciones
       const localizacionesResult = await LocalizacionesService.getByClientId(clientData.IdCliente);
@@ -689,7 +776,7 @@ export default function CreditApplicationPage() {
       : clientData?.Direccion || 'N/A';
 
     // Preparar datos de familiares/referencias
-    const familiares = referencias && referencias.length > 0 ? referencias.filter(ref => 
+    const familiares = Array.isArray(referencias) && referencias.length > 0 ? referencias.filter(ref => 
       ref.referenciapersonaltipos?.Nombre?.toLowerCase() === 'familiar' || ref.Relacion?.toLowerCase().includes('familiar')
     ) : [];
 
@@ -987,7 +1074,7 @@ export default function CreditApplicationPage() {
                   `}
               </table>
 
-              ${referencias && referencias.length > 0 ? `
+              ${Array.isArray(referencias) && referencias.length > 0 ? `
               <!-- Sección Referencias Personales -->
               <div class="seccion-title">Referencias Personales</div>
               <table class="familiares-table">
@@ -1105,7 +1192,7 @@ export default function CreditApplicationPage() {
                     color="success"
                     size="small"
                     startIcon={<AddIcon />}
-                    onClick={() => navigate('/onboarding-2')}
+                    onClick={handleNewApplication}
                     sx={{ 
                       backgroundColor: '#4caf50', 
                       '&:hover': { backgroundColor: '#45a049' },
@@ -1412,10 +1499,10 @@ export default function CreditApplicationPage() {
                     </Typography>
                   </Box>
                 </Grid>
-                {(loanCalculationData.tieneSeguro || loanCalculationData.tieneGPS) && (
+                {(loanCalculationData.tieneSeguro || loanCalculationData.tieneGPS || loanCalculationData.tieneKogarantia) && (
                   <>
                     {loanCalculationData.tieneSeguro && (
-                      <Grid item xs={12} md={6}>
+                      <Grid item xs={12} md={4}>
                         <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 1 }}>
                           <Typography variant="body2" color="text.secondary">Seguro Total</Typography>
                           <Typography variant="h6" fontWeight="600" color="secondary.main">
@@ -1425,11 +1512,21 @@ export default function CreditApplicationPage() {
                       </Grid>
                     )}
                     {loanCalculationData.tieneGPS && (
-                      <Grid item xs={12} md={6}>
+                      <Grid item xs={12} md={4}>
                         <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 1 }}>
                           <Typography variant="body2" color="text.secondary">GPS Total</Typography>
                           <Typography variant="h6" fontWeight="600" color="secondary.main">
                             RD$ {(loanCalculationData.montoTotalGPS || 0).toLocaleString()}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    )}
+                    {loanCalculationData.tieneKogarantia && (
+                      <Grid item xs={12} md={4}>
+                        <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 1 }}>
+                          <Typography variant="body2" color="text.secondary">Kogarantía Total</Typography>
+                          <Typography variant="h6" fontWeight="600" color="secondary.main">
+                            RD$ {(loanCalculationData.montoTotalKogarantia || 0).toLocaleString()}
                           </Typography>
                         </Box>
                       </Grid>

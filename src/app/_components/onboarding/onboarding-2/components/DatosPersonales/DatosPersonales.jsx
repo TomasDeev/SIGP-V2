@@ -394,6 +394,32 @@ const DatosPersonales = () => {
               />
             </Grid>
 
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Lugar de Nacimiento"
+                value={datosPersonales.lugarNacimiento}
+                onChange={(e) => handleInputChange('lugarNacimiento', e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Public sx={{ color: 'text.secondary', fontSize: '1.1rem' }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ 
+                  '& .MuiInputBase-input': { 
+                    fontSize: '0.9rem',
+                    fontWeight: 400
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: '0.9rem',
+                    fontWeight: 500
+                  }
+                }}
+              />
+            </Grid>
+
             {/* Cuarta fila - Sexo */}
             <Grid item xs={12} md={6}>
               <FormControl component="fieldset">

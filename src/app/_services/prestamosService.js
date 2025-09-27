@@ -217,6 +217,42 @@ export class PrestamosService {
       return { success: false, error: error.message };
     }
   }
+  
+  /**
+   * Crear tabla de amortización para un préstamo
+   */
+  static async createAmortizationTable(idPrestamo, amortizationData) {
+    try {
+      if (!Array.isArray(amortizationData) || amortizationData.length === 0) {
+        return { success: false, error: 'Datos de amortización inválidos' };
+      }
+      
+      // Formatear los datos para la tabla de amortizaciones
+      const amortizaciones = amortizationData.map((item, index) => ({
+        IdPrestamo: idPrestamo,
+        OrdenPago: index + 1,
+        Vencimiento: item.fechaVencimiento,
+        Capital: parseFloat(item.capital) || 0,
+        Interes: parseFloat(item.interes) || 0,
+        Mora: 0,
+        Seguro: parseFloat(item.seguro) || 0,
+        GastoCierre: parseFloat(item.gastoCierre) || 0,
+        EstaPagado: false,
+        MontoPagado: 0
+      }));
+      
+      const { data, error } = await supabase
+        .from('amortizaciones')
+        .insert(amortizaciones)
+        .select();
+      
+      if (error) throw error;
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error creando tabla de amortización:', error);
+      return { success: false, error: error.message };
+    }
+  }
 
   /**
    * Obtener estadísticas de préstamos
